@@ -1,14 +1,15 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
+import Link from 'next/link'
+import { useRouter, useSearchParams } from 'next/navigation'
+import { createClient } from '@/lib/supabase/client'
+import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Separator } from '@/components/ui/separator'
-import { toast } from 'sonner'
-import { createClient } from '@/lib/supabase/client'
-import { useRouter, useSearchParams } from 'next/navigation'
 import { Loader2, Mail, Lock, Eye, EyeOff, Wallet } from 'lucide-react'
 
 export default function LoginPage() {
@@ -16,10 +17,15 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [isClient, setIsClient] = useState(false)
   const router = useRouter()
   const searchParams = useSearchParams()
   const redirectTo = searchParams.get('redirect') || '/dashboard'
   const supabase = createClient()
+
+  useEffect(() => {
+    setIsClient(true)
+  }, [])
 
   const handleGoogleLogin = async () => {
     try {
@@ -71,32 +77,19 @@ export default function LoginPage() {
     }
   }
 
-  const handleTestLogin = async () => {
-    try {
-      setIsLoading(true)
-      // Test dengan user demo (optional)
-      const { error } = await supabase.auth.signInWithPassword({
-        email: 'demo@example.com',
-        password: 'demo123',
-      })
-
-      if (error) throw error
-
-      toast.success('Demo login successful!')
-      router.push('/dashboard')
-      router.refresh()
-    } catch (error) {
-      toast.error('Demo login failed. Try Google login instead.')
-    } finally {
-      setIsLoading(false)
-    }
+  if (!isClient) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin" />
+      </div>
+    )
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-blue-50 dark:from-gray-900 dark:to-gray-800 p-4">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800 p-4">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-600 rounded-2xl shadow-lg mb-4">
+          <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-2xl shadow-lg mb-4">
             <Wallet className="h-8 w-8 text-white" />
           </div>
           <h1 className="text-3xl font-bold text-gray-900 dark:text-white">FinanceFlow</h1>
@@ -119,7 +112,7 @@ export default function LoginPage() {
               onClick={handleGoogleLogin}
               disabled={isLoading}
             >
-              {isLoading ? (
+              {isLoading && isClient? (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
               ) : (
                 <svg className="mr-2 h-4 w-4" viewBox="0 0 24 24">
@@ -218,7 +211,9 @@ export default function LoginPage() {
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={handleTestLogin}
+                onClick={() => {
+                  toast.info('Demo feature coming soon!')
+                }}
                 disabled={isLoading}
                 className="text-xs"
               >
