@@ -14,11 +14,7 @@ export function ThemeToggle() {
   }, [])
 
   if (!mounted) {
-    return (
-      <Button variant="outline" size="icon" disabled>
-        <Sun className="h-[1.2rem] w-[1.2rem]" />
-      </Button>
-    )
+    return null;
   }
 
   return (
