@@ -2,7 +2,8 @@
 
 import { useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { createClient } from '@/lib/supabase/client'
+import { createBrowserClient } from '@/lib/supabase/client'
+import { syncApi } from '@/lib/api/sync'
 import { Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -11,21 +12,48 @@ export default function AuthCallbackPage() {
   const searchParams = useSearchParams()
   const redirectTo = searchParams.get('redirect') || '/dashboard'
 
-  useEffect(() => {
+   useEffect(() => {
     const handleAuthCallback = async () => {
       try {
-        const supabase = createClient()
+        const supabase = createBrowserClient()
         
         // Get the session from URL hash
         const { data: { session }, error } = await supabase.auth.getSession()
 
-        if (error) {
-          throw error
-        }
+        if (error) throw error
 
         if (session) {
-          toast.success('Login successful!')
-          router.push(redirectTo)
+          // CEK APAKAH INI GOOGLE OAUTH?
+          const isGoogleOAuth = session.provider_token && 
+                               session.user?.app_metadata?.provider === 'google'
+
+          if (isGoogleOAuth) {
+            try {
+              // KIRIM GOOGLE TOKEN KE BACKEND!
+              await syncApi.storeGoogleToken({
+                google_token: session.provider_token,
+                google_refresh_token: session.provider_refresh_token,
+                expires_in: session.expires_in
+              })
+              
+              toast.success('Gmail connected successfully!')
+              
+              // Redirect ke sync settings kalo dari connect Gmail
+              if (redirectTo.includes('sync')) {
+                router.push(redirectTo)
+              } else {
+                router.push('/sync/settings?connected=true')
+              }
+            } catch (err: any) {
+              console.error('Failed to store Gmail token:', err)
+              toast.error('Gmail connected but token storage failed')
+              router.push(redirectTo)
+            }
+          } else {
+            // Regular login
+            toast.success('Login successful!')
+            router.push(redirectTo)
+          }
         } else {
           toast.error('Authentication failed')
           router.push('/login')
