@@ -28,6 +28,9 @@ export default function LoginPage() {
   }, [])
 
   const handleGoogleLogin = async () => {
+      // 🔍 DEBUG: Cek sebelum login
+    console.log('🔵 Attempting Google login...');
+
     try {
       setIsLoading(true)
       const { error } = await supabase.auth.signInWithOAuth({
