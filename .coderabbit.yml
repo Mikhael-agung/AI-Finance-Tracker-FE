@@ -1,7 +1,8 @@
+# yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
 # .coderabbit.yaml - Finance Tracker Frontend
 # CodeRabbit Configuration for Next.js 15 + TypeScript + Supabase
 
-language: "en"
+language: "en-US"
 
 tone_instructions: |
   Berikan review dalam Bahasa Indonesia yang jelas, konstruktif, dan mudah dipahami. 
@@ -171,7 +172,7 @@ reviews:
         - Pastikan union types dan discriminated unions proper
         - Validate generic types usage dan constraints
         
-        ZINGER/VALIDATION:
+        ZOD/VALIDATION:
         - Cek Zod schemas match TypeScript types (use z.infer)
         - Validate schema transformations dan refinements
         - Pastikan error messages user-friendly
@@ -272,21 +273,3 @@ reviews:
 
 chat:
   auto_reply: true
-
-# ==================== ADDITIONAL CHECKS ====================
-# These apply to all file types
-
-knowledge_base:
-  learnings:
-    - "Next.js 15 uses Turbopack by default untuk faster builds"
-    - "App Router di Next.js prefer Server Components by default"
-    - "Supabase Auth handles session management, no need manual JWT"
-    - "Tailwind v4 coming soon, tapi v3 masih recommended"
-    - "React 19 introduces Server Actions yang powerful"
-    - "TypeScript strict mode highly recommended untuk production"
-
-  opt_out:
-    - "python"
-    - "java"
-    - "go"
-    - "rust"
