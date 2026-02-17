@@ -1,19 +1,13 @@
-// app/layout.tsx
 import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
 import './globals.css'
-import { Toaster } from '@/components/ui/sonner'
 import { ThemeProvider } from '@/components/providers/theme-provider'
-import { AuthProvider } from '@/components/providers/auth-provider'
 
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: 'FinanceFlow - Personal Finance Tracker',
-  description: 'Track your finances, manage budgets, and sync transactions automatically',
-  icons: {
-    icon: '/favicon.ico',
-  },
+  title: 'FinanceFlow',
+  description: 'Track your finances, master your budget',
 }
 
 export default function RootLayout({
@@ -23,6 +17,20 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" suppressHydrationWarning>
+      <head>
+        {/* Google Fonts - Inter */}
+        <link
+          href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap"
+          rel="stylesheet"
+          precedence="default" 
+        />
+        {/* Material Symbols */}
+        <link
+          href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap"
+          rel="stylesheet"
+          precedence="default"
+        />
+      </head>
       <body className={inter.className}>
         <ThemeProvider
           attribute="class"
@@ -30,10 +38,7 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-          <AuthProvider>
-            {children}
-          </AuthProvider>
-          <Toaster />
+          {children}
         </ThemeProvider>
       </body>
     </html>
