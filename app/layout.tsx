@@ -1,19 +1,19 @@
-import type { Metadata } from 'next'
-import { Inter } from 'next/font/google'
-import './globals.css'
-import { ThemeProvider } from '@/components/providers/theme-provider'
+import type { Metadata } from "next";
+import { Inter } from "next/font/google";
+import "./globals.css";
+import { ThemeProvider } from "@/components/providers/theme-provider";
 
-const inter = Inter({ subsets: ['latin'] })
+const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: 'FinanceFlow',
-  description: 'Track your finances, master your budget',
-}
+  title: "FinanceFlow",
+  description: "Track your finances, master your budget",
+};
 
 export default function RootLayout({
   children,
 }: {
-  children: React.ReactNode
+  children: React.ReactNode;
 }) {
   return (
     <html lang="id" suppressHydrationWarning>
@@ -29,16 +29,18 @@ export default function RootLayout({
           precedence="default"
         />
       </head>
-      <body className={`${inter.className} bg-background-light dark:bg-background-dark`}>
+      <body
+        className={`${inter.className} bg-background-light dark:bg-background-dark`}
+      >
         <ThemeProvider
           attribute="class"
-          defaultTheme="light"  
-          enableSystem={false}  
+          defaultTheme="light"
+          enableSystem={false}
           disableTransitionOnChange
         >
           {children}
         </ThemeProvider>
       </body>
     </html>
-  )
+  );
 }

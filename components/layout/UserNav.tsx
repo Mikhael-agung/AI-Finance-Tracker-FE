@@ -12,7 +12,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { CreditCard, LogOut, Settings, User } from 'lucide-react'
-import { createClient } from '@/lib/supabase/client'
+import { createBrowserClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import { User as SupabaseUser } from '@supabase/supabase-js'
@@ -23,7 +23,7 @@ interface UserNavProps {
 
 export function UserNav({ user }: UserNavProps) {
   const router = useRouter()
-  const supabase = createClient()
+  const supabase = createBrowserClient()
 
   const handleLogout = async () => {
     try {
