@@ -16,6 +16,8 @@ export interface Transaction {
   currency: string;
   status: 'pending' | 'completed' | 'cancelled';
   metadata?: Record<string, any>;
+    source?: 'email' | 'manual';        // ← tambah ini
+  payment_method?: string; 
 }
 
 export interface TransactionFilters {
