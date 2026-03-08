@@ -1,3 +1,4 @@
+// lib/api/client.ts
 import { getSession } from '@/lib/supabase/client';
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
@@ -25,13 +26,17 @@ class ApiClient {
     const session = await getSession();
     const token = session?.access_token;
 
-    const headers: HeadersInit = {
-      'Content-Type': 'application/json',
-      ...options.headers,
+    // ✅ Fix: jangan set Content-Type kalau FormData
+    // biarkan browser set sendiri dengan boundary yang benar
+    const isFormData = options.body instanceof FormData;
+
+    const headers: Record<string, string> = {
+      ...(isFormData ? {} : { 'Content-Type': 'application/json' }),
+      ...(options.headers as Record<string, string>),
     };
 
     if (token) {
-      (headers as Record<string, string>)['Authorization'] = `Bearer ${token}`;
+      headers['Authorization'] = `Bearer ${token}`;
     }
 
     const url = `${BASE_URL}${endpoint}`;
@@ -46,12 +51,9 @@ class ApiClient {
       const data: ApiResponse<T> | ApiError = await response.json();
 
       if (!response.ok) {
-        // Handle 401 - Unauthorized (token expired)
         if (response.status === 401) {
-          // TODO: Implement token refresh logic
           throw new Error('Session expired. Please login again.');
         }
-
         throw new Error(
           (data as ApiError).error || `Request failed with status ${response.status}`
         );
@@ -71,18 +73,25 @@ class ApiClient {
     }
   }
 
-  // CRUD Methods
   async get<T>(endpoint: string, query?: Record<string, any>): Promise<T> {
-    const queryString = query ? `?${new URLSearchParams(query).toString()}` : '';
+    const queryString = query
+      ? `?${new URLSearchParams(
+          Object.fromEntries(
+            Object.entries(query).filter(([, v]) => v !== undefined && v !== null && v !== '')
+          )
+        ).toString()}`
+      : '';
     return this.request<T>(`${endpoint}${queryString}`, {
       method: 'GET',
     });
   }
 
   async post<T>(endpoint: string, data?: any): Promise<T> {
+    // ✅ Fix: kalau FormData, kirim langsung tanpa stringify
+    const isFormData = data instanceof FormData;
     return this.request<T>(endpoint, {
       method: 'POST',
-      body: data ? JSON.stringify(data) : undefined,
+      body: isFormData ? data : data ? JSON.stringify(data) : undefined,
     });
   }
 
