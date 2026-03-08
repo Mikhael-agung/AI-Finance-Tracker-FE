@@ -14,7 +14,7 @@ import {
 import { cn } from '@/lib/utils'
 
 const navItems = [
-  { name: 'Dashboard', href: '/dashboard', icon: Home },
+  { name: 'Dashboard', href: '/dashboard/overview', icon: Home },
   { name: 'Transactions', href: '/transactions', icon: CreditCard },
   { name: 'Wallets', href: '/wallets', icon: Wallet },
   { name: 'Budgets', href: '/budgets', icon: PieChart },
