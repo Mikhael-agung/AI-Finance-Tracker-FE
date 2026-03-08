@@ -16,7 +16,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="id" suppressHydrationWarning>
+    <html lang="id" suppressHydrationWarning className="light">
       <head>
         <link
           href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap"
@@ -30,12 +30,13 @@ export default function RootLayout({
         />
       </head>
       <body
-        className={`${inter.className} bg-background-light dark:bg-background-dark`}
+        className={`${inter.className} bg-[#F0F9FF] dark:bg-[#0C1A2E]`}  /* ← Ganti ke hex direct */
       >
         <ThemeProvider
           attribute="class"
           defaultTheme="light"
           enableSystem={false}
+          forcedTheme="light"  /* ← Tambah ini */
           disableTransitionOnChange
         >
           {children}

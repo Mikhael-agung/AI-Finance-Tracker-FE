@@ -34,10 +34,12 @@ export default function HomePage() {
             whileHover={{ scale: 1.02 }}
             className="flex items-center gap-2 group cursor-pointer"
           >
-            <div className="bg-primary p-1.5 rounded-lg text-white">
-              <span className="material-symbols-outlined text-2xl block">account_balance_wallet</span>
+            <div className="relative z-10 flex items-center gap-3">
+              <div className="size-10 bg-white dark:bg-slate-800 rounded-lg flex items-center justify-center shadow-lg border-2 border-primary ">
+                <span className="text-primary font-black text-xl tracking-tighter">FF</span>
+              </div>
+              <span className="text-2xl font-bold tracking-tight text-[#0C4A6E] dark:text-white">FinanceFlow</span>
             </div>
-            <h2 className="text-[#0d171c] dark:text-white text-xl font-bold tracking-tight">FinanceFlow</h2>
           </motion.div>
 
           <div className="hidden md:flex items-center gap-10">
@@ -251,8 +253,8 @@ export default function HomePage() {
               className="w-full mt-10 pt-10 border-t border-primary/5 flex flex-wrap justify-center items-center gap-6 md:gap-10 text-xs font-mono uppercase tracking-widest"
             >
               <div className="flex items-center gap-2">
-                <span>Built with</span> 
-                <motion.span 
+                <span>Built with</span>
+                <motion.span
                   whileHover={{ scale: 1.05, color: '#0da2e7' }}
                   className="font-bold text-slate-900 dark:text-white"
                 >
@@ -260,8 +262,8 @@ export default function HomePage() {
                 </motion.span>
               </div>
               <div className="flex items-center gap-2">
-                <span className="w-1 h-1 bg-primary rounded-full"></span> 
-                <motion.span 
+                <span className="w-1 h-1 bg-primary rounded-full"></span>
+                <motion.span
                   whileHover={{ scale: 1.05, color: '#0da2e7' }}
                   className="font-bold text-slate-900 dark:text-white"
                 >
@@ -269,8 +271,8 @@ export default function HomePage() {
                 </motion.span>
               </div>
               <div className="flex items-center gap-2">
-                <span className="w-1 h-1 bg-primary rounded-full"></span> 
-                <motion.span 
+                <span className="w-1 h-1 bg-primary rounded-full"></span>
+                <motion.span
                   whileHover={{ scale: 1.05, color: '#0da2e7' }}
                   className="font-bold text-slate-900 dark:text-white"
                 >
@@ -452,10 +454,12 @@ export default function HomePage() {
               className="flex flex-col items-center text-center gap-4"
             >
               <div className="flex items-center gap-2">
-                <div className="bg-primary p-1.5 rounded-lg text-white">
-                  <span className="material-symbols-outlined text-2xl block">account_balance_wallet</span>
+                <div className="relative z-10 flex items-center gap-3">
+                  <div className="size-10 bg-white dark:bg-slate-800 rounded-lg flex items-center justify-center shadow-lg border-2 border-primary ">
+                    <span className="text-primary font-black text-xl tracking-tighter">FF</span>
+                  </div>
+                  <span className="text-2xl font-bold tracking-tight text-[#0C4A6E] dark:text-white">FinanceFlow</span>
                 </div>
-                <h2 className="text-[#0d171c] dark:text-white text-xl font-bold tracking-tight">FinanceFlow</h2>
               </div>
               <p className="text-slate-500 text-base max-w-sm">Manajemen keuangan cerdas untuk komunitas terbatas.</p>
             </motion.div>
@@ -509,8 +513,8 @@ export default function HomePage() {
               transition={{ delay: 0.2 }}
               className="w-full pt-8 border-t border-slate-100 dark:border-slate-900 flex flex-col items-center gap-4"
             >
-              <p className="text-sm text-slate-400 text-center">© 2024 FinanceFlow. Dibuat dengan penuh perhatian untuk komunitas terpilih.</p>
-              <motion.div 
+              <p className="text-sm text-slate-400 text-center">© {new Date().getFullYear()} FinanceFlow. Dibuat dengan penuh perhatian untuk komunitas terpilih.</p>
+              <motion.div
                 whileHover={{ scale: 1.05 }}
                 className="flex items-center gap-2 text-[10px] uppercase tracking-widest text-slate-400 opacity-60"
               >
