@@ -1,9 +1,10 @@
-import { api } from './client';
-import { Transaction, TransactionFilters } from '@/types/transaction.types';
+import { api } from "./client";
+import { Transaction, TransactionFilters } from "@/types/transaction.types";
 
 export interface TransactionListResponse {
   transactions: Transaction[];
   total: number;
+  totalItems: number;
   page: number;
   limit: number;
   totalPages: number;
@@ -23,7 +24,7 @@ export interface SpendingByCategory {
 }
 
 export async function fetchTransactions(
-  filters?: TransactionFilters
+  filters?: TransactionFilters,
 ): Promise<TransactionListResponse> {
   const query: Record<string, any> = {};
   if (filters?.wallet_id) query.wallet_id = filters.wallet_id;
@@ -41,31 +42,34 @@ export async function fetchTransactions(
 
   // BE returns { success, data: [...], pagination: {...} }
   // api.get sudah unwrap ke .data, jadi raw = array of transactions + pagination terpisah
-  const raw = await api.get<any>('/transactions', query);
+  const raw = await api.get<any>("/transactions", query);
 
   return {
-    transactions: Array.isArray(raw) ? raw : (raw?.data ?? []),
-    total: raw?.pagination?.total ?? 0,
-    page: raw?.pagination?.page ?? 1,
+    transactions: raw?.data ?? [],
+    total: raw?.pagination?.totalItems ?? 0,
+    totalItems: raw?.pagination?.totalItems ?? 0,
+    page: raw?.pagination?.currentPage ?? 1,
     limit: raw?.pagination?.limit ?? 50,
-    totalPages: raw?.pagination?.total_pages ?? 1,
-  };
+    totalPages: raw?.pagination?.totalPages ?? 1,
+  }
 }
 
-export async function fetchRecentTransactions(limit = 5): Promise<Transaction[]> {
+export async function fetchRecentTransactions(
+  limit = 5,
+): Promise<Transaction[]> {
   const result = await fetchTransactions({
     limit,
-    sort_by: 'transaction_date',
-    sort_order: 'desc',
+    sort_by: "transaction_date",
+    sort_order: "desc",
   });
   return result.transactions ?? [];
 }
 
 export async function fetchTransactionSummary(
-  period: 'week' | 'month' | 'year' = 'month'
+  period: "week" | "month" | "year" = "month",
 ): Promise<TransactionSummary> {
   // BE returns: { period, date_range, income, expense, net_flow }
-  const raw = await api.get<any>('/transactions/summary', { period });
+  const raw = await api.get<any>("/transactions/summary", { period });
 
   return {
     totalIncome: raw?.income ?? 0,
@@ -76,15 +80,17 @@ export async function fetchTransactionSummary(
 }
 
 export async function fetchSpendingByCategory(
-  period: 'week' | 'month' | 'year' = 'month'
+  period: "week" | "month" | "year" = "month",
 ): Promise<SpendingByCategory[]> {
   // BE returns: { period, total_expense, breakdown: [{category_name, total, percentage}] }
-  const raw = await api.get<any>('/transactions/spending-by-category', { period });
+  const raw = await api.get<any>("/transactions/spending-by-category", {
+    period,
+  });
 
   const breakdown: any[] = raw?.breakdown ?? [];
 
   return breakdown.map((item) => ({
-    category: item.category_name ?? 'Lainnya',
+    category: item.category_name ?? "Lainnya",
     amount: item.total ?? 0,
     percentage: item.percentage ?? 0,
   }));
@@ -94,11 +100,16 @@ export async function fetchTransactionById(id: string): Promise<Transaction> {
   return api.get<Transaction>(`/transactions/${id}`);
 }
 
-export async function createTransaction(data: Partial<Transaction>): Promise<Transaction> {
-  return api.post<Transaction>('/transactions', data);
+export async function createTransaction(
+  data: Partial<Transaction>,
+): Promise<Transaction> {
+  return api.post<Transaction>("/transactions", data);
 }
 
-export async function updateTransaction(id: string, data: Partial<Transaction>): Promise<Transaction> {
+export async function updateTransaction(
+  id: string,
+  data: Partial<Transaction>,
+): Promise<Transaction> {
   return api.put<Transaction>(`/transactions/${id}`, data);
 }
 

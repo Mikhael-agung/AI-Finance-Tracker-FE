@@ -8,7 +8,7 @@ import { fetchTransactions, fetchRecentTransactions, fetchTransactionSummary, fe
 import { fetchWalletSummary } from '@/lib/api/wallets';
 import { Transaction } from '@/types/transaction.types';
 import { useRouter } from 'next/navigation';
-import { format, subDays, startOfMonth, endOfMonth, eachDayOfInterval, eachWeekOfInterval, startOfWeek, endOfWeek, parseISO } from 'date-fns';
+import { format, subDays, startOfMonth, eachDayOfInterval, eachWeekOfInterval, endOfWeek, parseISO } from 'date-fns';
 import { id } from 'date-fns/locale';
 import type { DateRange } from 'react-day-picker';
 import {
@@ -26,6 +26,7 @@ interface DashboardData {
   totalExpenses: number;
   netFlow: number;
   walletCount: number;
+  totalTransactions: number; // FIX: tambah field ini
   recentTransactions: Transaction[];
   spendingByCategory: Array<{ category: string; amount: number; percentage: number }>;
 }
@@ -56,8 +57,6 @@ function buildChartData(transactions: Transaction[], dateRange: DateRange): Char
   if (!dateRange.from || !dateRange.to) return [];
 
   const diffDays = Math.ceil((dateRange.to.getTime() - dateRange.from.getTime()) / (1000 * 60 * 60 * 24));
-
-  // Group by week if range > 14 days, else by day
   const groupByWeek = diffDays > 14;
 
   let buckets: { label: string; from: Date; to: Date }[] = [];
@@ -89,37 +88,45 @@ function buildChartData(transactions: Transaction[], dateRange: DateRange): Char
       return txDate >= fromMidnight && txDate <= toMidnight;
     });
 
-    const expense = inRange
-      .filter((tx) => tx.type === 'expense')
-      .reduce((sum, tx) => sum + Number(tx.amount), 0);
-    const income = inRange
-      .filter((tx) => tx.type === 'income')
-      .reduce((sum, tx) => sum + Number(tx.amount), 0);
-
+    const expense = inRange.filter((tx) => tx.type === 'expense').reduce((sum, tx) => sum + Number(tx.amount), 0);
+    const income = inRange.filter((tx) => tx.type === 'income').reduce((sum, tx) => sum + Number(tx.amount), 0);
     return { label, expense, income, height: 0 };
   });
 
-  // Normalize heights
   const maxVal = Math.max(...data.map((d) => Math.max(d.expense, d.income)), 1);
   return data.map((d) => {
     if (d.expense === 0) return { ...d, height: 0 };
-
     const logVal = Math.log1p(d.expense);
     const logMax = Math.log1p(maxVal);
     const height = Math.round((logVal / logMax) * 100);
-    return { ...d, height: Math.max(height, 15) };   // minimum 15% height for visibility
-  })
+    return { ...d, height: Math.max(height, 15) };
+  });
+}
+
+// FIX: Format lastSynced timestamp yang human-readable
+function formatLastSynced(date: Date): string {
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffMins = Math.floor(diffMs / 60000);
+  const diffHours = Math.floor(diffMs / 3600000);
+
+  if (diffMins < 1) return 'baru saja';
+  if (diffMins < 60) return `${diffMins} menit lalu`;
+  if (diffHours < 24) return `${diffHours} jam lalu`;
+  return format(date, 'd MMM yyyy, HH:mm', { locale: id });
 }
 
 export default function DashboardOverviewPage() {
   const router = useRouter();
   const [data, setData] = useState<DashboardData>({
     totalBalance: 0, totalIncome: 0, totalExpenses: 0, netFlow: 0,
-    walletCount: 0, recentTransactions: [], spendingByCategory: [],
+    walletCount: 0, totalTransactions: 0,
+    recentTransactions: [], spendingByCategory: [],
   });
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
-  const [lastSynced, setLastSynced] = useState<string | null>(null);
+  // FIX: lastSynced pakai Date object bukan string
+  const [lastSynced, setLastSynced] = useState<Date | null>(null);
   const [calendarOpen, setCalendarOpen] = useState(false);
   const [chartBars, setChartBars] = useState<ChartBar[]>([]);
   const [chartLoading, setChartLoading] = useState(false);
@@ -140,12 +147,10 @@ export default function DashboardOverviewPage() {
         sort_by: 'transaction_date',
         sort_order: 'asc',
       });
-      console.log('CHART RESULT:', result);
       const bars = buildChartData(result.transactions, range);
-      console.log('CHART BARS:', bars);
       setChartBars(bars);
     } catch {
-      // fallback ke static
+      // silent fail
     } finally {
       setChartLoading(false);
     }
@@ -154,13 +159,21 @@ export default function DashboardOverviewPage() {
   const loadDashboardData = async () => {
     setLoading(true);
     try {
-      const [walletSummary, summary, recentTx, spending] = await Promise.allSettled([
+      const [walletSummary, summary, recentTx, spending, monthlyCount] = await Promise.allSettled([
         fetchWalletSummary(),
         fetchTransactionSummary('month'),
         fetchRecentTransactions(5),
         fetchSpendingByCategory('month'),
+        // FIX: fetch total transaksi bulan ini secara terpisah
+        fetchTransactions({
+          start_date: startOfMonth(new Date()).toISOString(),
+          end_date: new Date().toISOString(),
+          limit: 1, // cukup ambil 1, yang penting dapat total dari pagination
+        }),
       ]);
 
+      console.log('MONTHLY COUNT VALUE:', monthlyCount);
+      console.log('TOTAL TX:', monthlyCount.status === 'fulfilled' ? monthlyCount.value.totalItems : 'REJECTED');
       setData({
         totalBalance: walletSummary.status === 'fulfilled' ? walletSummary.value.totalBalance : 0,
         walletCount: walletSummary.status === 'fulfilled' ? walletSummary.value.walletCount : 0,
@@ -169,6 +182,8 @@ export default function DashboardOverviewPage() {
         netFlow: summary.status === 'fulfilled' ? summary.value.netFlow : 0,
         recentTransactions: recentTx.status === 'fulfilled' ? recentTx.value : [],
         spendingByCategory: spending.status === 'fulfilled' ? spending.value : [],
+        // FIX: pakai total dari pagination, bukan panjang array
+        totalTransactions: monthlyCount.status === 'fulfilled' ? (monthlyCount.value.totalItems ?? monthlyCount.value.total ?? 0) : 0,
       });
     } catch {
       toast.error('Gagal memuat data dashboard');
@@ -182,7 +197,8 @@ export default function DashboardOverviewPage() {
     try {
       await api.post('/sync/trigger');
       toast.success('Sinkronisasi berhasil!');
-      setLastSynced('baru saja');
+      // FIX: simpan timestamp sync sebagai Date object
+      setLastSynced(new Date());
       await loadDashboardData();
       await loadChartData(dateRange);
     } catch {
@@ -201,7 +217,6 @@ export default function DashboardOverviewPage() {
     }
   };
 
-  // Quick range presets
   const setPreset = (days: number) => {
     const range = { from: subDays(new Date(), days), to: new Date() };
     setDateRange(range);
@@ -229,7 +244,8 @@ export default function DashboardOverviewPage() {
           <h2 className="text-2xl font-bold text-slate-900 dark:text-white">Halo! 👋</h2>
           <p className="text-sm text-slate-500 font-medium flex items-center gap-1.5 mt-0.5">
             <RefreshCcw className="h-3 w-3" />
-            {lastSynced ? `Terakhir sinkronisasi: ${lastSynced}` : 'Belum pernah sinkronisasi'}
+            {/* FIX: pakai formatLastSynced() */}
+            {lastSynced ? `Terakhir sinkronisasi: ${formatLastSynced(lastSynced)}` : 'Belum pernah sinkronisasi'}
           </p>
         </div>
         <div className="flex items-center gap-3">
@@ -253,7 +269,7 @@ export default function DashboardOverviewPage() {
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <div className="bg-white dark:bg-gray-900 p-6 rounded-xl border border-slate-200 dark:border-gray-800 shadow-sm relative overflow-hidden group">
+        <div className="bg-white dark:bg-gray-900 p-6 rounded-xl border border-slate-200 dark:border-gray-800 shadow-sm">
           <p className="text-sm text-slate-500 font-semibold mb-1">Total Saldo</p>
           {loading ? <div className="h-8 w-36 bg-slate-100 animate-pulse rounded mb-2" /> : (
             <h3 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">{formatCurrency(data.totalBalance)}</h3>
@@ -297,7 +313,6 @@ export default function DashboardOverviewPage() {
 
       {/* Row 2: Chart + Sync */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Tren Pengeluaran */}
         <div className="lg:col-span-2 bg-white dark:bg-gray-900 p-6 rounded-xl border border-slate-200 dark:border-gray-800 shadow-sm">
           <div className="flex items-center justify-between mb-4">
             <div>
@@ -305,24 +320,14 @@ export default function DashboardOverviewPage() {
               <p className="text-xs text-slate-500 font-medium">{dateRangeLabel}</p>
             </div>
             <div className="flex items-center gap-2">
-              {/* Quick presets */}
               <div className="hidden sm:flex items-center gap-1">
-                {[
-                  { label: '7H', days: 7 },
-                  { label: '30H', days: 30 },
-                  { label: '90H', days: 90 },
-                ].map(({ label, days }) => (
-                  <button
-                    key={days}
-                    onClick={() => setPreset(days)}
-                    className="px-2.5 py-1 text-xs font-bold rounded-lg text-slate-500 hover:bg-[#0da2e7]/10 hover:text-[#0da2e7] transition-all"
-                  >
+                {[{ label: '7H', days: 7 }, { label: '30H', days: 30 }, { label: '90H', days: 90 }].map(({ label, days }) => (
+                  <button key={days} onClick={() => setPreset(days)}
+                    className="px-2.5 py-1 text-xs font-bold rounded-lg text-slate-500 hover:bg-[#0da2e7]/10 hover:text-[#0da2e7] transition-all">
                     {label}
                   </button>
                 ))}
               </div>
-
-              {/* Date range picker */}
               <Popover open={calendarOpen} onOpenChange={setCalendarOpen}>
                 <PopoverTrigger asChild>
                   <button className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-gray-700 text-xs font-bold text-slate-600 dark:text-slate-300 hover:border-[#0da2e7] hover:text-[#0da2e7] transition-all">
@@ -340,49 +345,35 @@ export default function DashboardOverviewPage() {
                         { label: '30 hari', days: 30 },
                         { label: 'Bulan ini', days: -1 },
                       ].map(({ label, days }) => (
-                        <button
-                          key={label}
+                        <button key={label}
                           onClick={() => {
                             if (days === -1) {
                               const range = { from: startOfMonth(new Date()), to: new Date() };
-                              setDateRange(range);
-                              setCalendarOpen(false);
-                              loadChartData(range);
+                              setDateRange(range); setCalendarOpen(false); loadChartData(range);
                             } else if (days === 0) {
                               const today = new Date();
                               const range = { from: today, to: today };
-                              setDateRange(range);
-                              setCalendarOpen(false);
-                              loadChartData(range);
+                              setDateRange(range); setCalendarOpen(false); loadChartData(range);
                             } else {
                               setPreset(days);
                             }
                           }}
-                          className="px-2.5 py-1 text-xs font-bold rounded-lg bg-slate-100 dark:bg-gray-700 text-slate-600 dark:text-slate-300 hover:bg-[#0da2e7]/10 hover:text-[#0da2e7] transition-all"
-                        >
+                          className="px-2.5 py-1 text-xs font-bold rounded-lg bg-slate-100 dark:bg-gray-700 text-slate-600 dark:text-slate-300 hover:bg-[#0da2e7]/10 hover:text-[#0da2e7] transition-all">
                           {label}
                         </button>
                       ))}
                     </div>
                   </div>
-                  <Calendar
-                    mode="range"
-                    selected={dateRange}
-                    onSelect={handleDateRangeSelect}
-                    numberOfMonths={2}
-                    locale={id}
-                    disabled={{ after: new Date() }}
-                  />
+                  <Calendar mode="range" selected={dateRange} onSelect={handleDateRangeSelect}
+                    numberOfMonths={2} locale={id} disabled={{ after: new Date() }} />
                 </PopoverContent>
               </Popover>
-
               <div className="flex items-center gap-2 bg-[#0da2e7]/10 px-3 py-1.5 rounded-full">
                 <span className="text-xs font-bold text-[#0da2e7] tracking-tight">✨ Gemini AI</span>
               </div>
             </div>
           </div>
 
-          {/* Chart */}
           {chartLoading ? (
             <div className="h-48 w-full bg-slate-50 dark:bg-gray-800 rounded-lg flex items-center justify-center">
               <RefreshCcw className="h-6 w-6 text-slate-300 animate-spin" />
@@ -396,31 +387,22 @@ export default function DashboardOverviewPage() {
               <div className="h-48 w-full bg-slate-50 dark:bg-gray-800 rounded-lg flex items-end px-4 pb-2 gap-1 overflow-x-auto">
                 {chartBars.map((bar, i) => (
                   <div key={i} className="flex-1 min-w-[20px] flex flex-col justify-end items-center group/bar relative" style={{ height: '100%' }}>
-                    {/* Tooltip */}
                     <div className="absolute bottom-full mb-2 left-1/2 -translate-x-1/2 bg-slate-900 dark:bg-white text-white dark:text-slate-900 text-[10px] font-bold px-2 py-1 rounded-lg opacity-0 group-hover/bar:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-10">
                       {formatCurrency(bar.expense)}
                     </div>
-                    <div
-                      className="w-full rounded-t-md transition-all duration-500 cursor-pointer hover:opacity-80"
+                    <div className="w-full rounded-t-md transition-all duration-500 cursor-pointer hover:opacity-80"
                       style={{
                         height: bar.expense > 0 ? `${Math.max(bar.height, 8)}%` : '4px',
-                        background: i === chartBars.length - 1
-                          ? '#0da2e7'
-                          : `rgba(13,162,231,${0.25 + (i / chartBars.length) * 0.6})`,
-                      }}
-                    />
+                        background: i === chartBars.length - 1 ? '#0da2e7' : `rgba(13,162,231,${0.25 + (i / chartBars.length) * 0.6})`,
+                      }} />
                   </div>
                 ))}
               </div>
-              {/* Labels — show max 8 */}
               <div className="flex justify-between mt-3 px-1 overflow-hidden">
                 {chartBars
                   .filter((_, i) => chartBars.length <= 8 || i % Math.ceil(chartBars.length / 8) === 0 || i === chartBars.length - 1)
                   .map((bar, i, arr) => (
-                    <span
-                      key={i}
-                      className={`text-[10px] font-medium ${i === arr.length - 1 ? 'text-slate-700 dark:text-white font-bold' : 'text-slate-400'}`}
-                    >
+                    <span key={i} className={`text-[10px] font-medium ${i === arr.length - 1 ? 'text-slate-700 dark:text-white font-bold' : 'text-slate-400'}`}>
                       {bar.label}
                     </span>
                   ))}
@@ -451,7 +433,8 @@ export default function DashboardOverviewPage() {
             <div className="grid grid-cols-2 gap-4 p-4 bg-slate-50 dark:bg-gray-800 rounded-xl">
               <div>
                 <p className="text-[10px] text-slate-400 uppercase font-bold tracking-wider mb-1">Bulan ini</p>
-                <p className="text-md font-bold text-slate-900 dark:text-white">{data.recentTransactions.length} Transaksi</p>
+                {/* FIX: pakai totalTransactions bukan recentTransactions.length */}
+                <p className="text-md font-bold text-slate-900 dark:text-white">{data.totalTransactions} Transaksi</p>
               </div>
               <div>
                 <p className="text-[10px] text-slate-400 uppercase font-bold tracking-wider mb-1">Status</p>
@@ -459,12 +442,8 @@ export default function DashboardOverviewPage() {
               </div>
             </div>
           </div>
-          <Button
-            onClick={handleSync}
-            disabled={syncing}
-            variant="outline"
-            className="mt-auto w-full rounded-xl font-bold border-dashed hover:border-[#0da2e7] hover:text-[#0da2e7] transition-all"
-          >
+          <Button onClick={handleSync} disabled={syncing} variant="outline"
+            className="mt-auto w-full rounded-xl font-bold border-dashed hover:border-[#0da2e7] hover:text-[#0da2e7] transition-all">
             <RefreshCcw className={`h-4 w-4 mr-2 ${syncing ? 'animate-spin' : ''}`} />
             {syncing ? 'Syncing...' : 'Sync Manual'}
           </Button>
@@ -480,7 +459,6 @@ export default function DashboardOverviewPage() {
               Lihat Semua
             </button>
           </div>
-
           {loading ? (
             <div className="divide-y divide-slate-100 dark:divide-gray-800">
               {[...Array(4)].map((_, i) => (
@@ -503,11 +481,8 @@ export default function DashboardOverviewPage() {
           ) : (
             <div className="divide-y divide-slate-100 dark:divide-gray-800">
               {data.recentTransactions.map((tx) => (
-                <div
-                  key={tx.id}
-                  onClick={() => router.push(`/transactions/${tx.id}`)}
-                  className="p-4 hover:bg-slate-50 dark:hover:bg-gray-800 transition-colors flex items-center justify-between cursor-pointer"
-                >
+                <div key={tx.id} onClick={() => router.push(`/transactions/${tx.id}`)}
+                  className="p-4 hover:bg-slate-50 dark:hover:bg-gray-800 transition-colors flex items-center justify-between cursor-pointer">
                   <div className="flex items-center gap-4">
                     <div className="size-11 rounded-full bg-slate-100 dark:bg-gray-800 flex items-center justify-center text-slate-600 dark:text-slate-300">
                       {getCategoryIcon(tx.category || '')}
@@ -540,7 +515,6 @@ export default function DashboardOverviewPage() {
         {/* Spending by Category */}
         <div className="bg-white dark:bg-gray-900 p-6 rounded-xl border border-slate-200 dark:border-gray-800 shadow-sm">
           <h4 className="text-lg font-bold text-slate-900 dark:text-white mb-6">Pengeluaran per Kategori</h4>
-
           {loading ? (
             <div className="space-y-6">
               {[...Array(3)].map((_, i) => (
@@ -571,21 +545,16 @@ export default function DashboardOverviewPage() {
                       <p className="text-xs font-bold text-slate-900 dark:text-white">{formatCurrency(item.amount)}</p>
                     </div>
                     <div className="w-full h-2.5 bg-slate-100 dark:bg-gray-700 rounded-full overflow-hidden">
-                      <div
-                        className="h-full rounded-full transition-all duration-500"
-                        style={{ width: `${item.percentage}%`, background: isHigh ? '#f43f5e' : '#0da2e7' }}
-                      />
+                      <div className="h-full rounded-full transition-all duration-500"
+                        style={{ width: `${item.percentage}%`, background: isHigh ? '#f43f5e' : '#0da2e7' }} />
                     </div>
                   </div>
                 );
               })}
             </div>
           )}
-
-          <button
-            onClick={() => router.push('/budgets/new')}
-            className="w-full mt-8 py-3 border-2 border-dashed border-slate-200 dark:border-gray-700 rounded-xl text-slate-500 font-bold text-sm hover:border-[#0da2e7] hover:text-[#0da2e7] transition-all"
-          >
+          <button onClick={() => router.push('/budgets/new')}
+            className="w-full mt-8 py-3 border-2 border-dashed border-slate-200 dark:border-gray-700 rounded-xl text-slate-500 font-bold text-sm hover:border-[#0da2e7] hover:text-[#0da2e7] transition-all">
             + Tambah Anggaran
           </button>
         </div>

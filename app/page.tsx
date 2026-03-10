@@ -314,12 +314,9 @@ export default function HomePage() {
                   whileHover={{ y: -5, boxShadow: '0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1)' }}
                   className="bg-white dark:bg-slate-900 p-8 rounded-2xl border border-slate-100 dark:border-slate-800 transition-all group hover:shadow-xl hover:shadow-primary/5"
                 >
-                  <motion.div
-                    whileHover={{ scale: 1.1, backgroundColor: '#0da2e7' }}
-                    className="w-14 h-14 bg-primary/10 rounded-xl flex items-center justify-center text-primary mb-6 group-hover:bg-primary group-hover:text-white transition-colors"
-                  >
+                  <div className="w-14 h-14 bg-primary/10 rounded-xl flex items-center justify-center text-primary mb-6 group-hover:bg-primary group-hover:text-white transition-colors">
                     <span className="material-symbols-outlined text-3xl">{feature.icon}</span>
-                  </motion.div>
+                  </div>
                   <h4 className="text-xl font-bold text-[#0d171c] dark:text-white mb-3">{feature.title}</h4>
                   <p className="text-slate-500 dark:text-slate-400 leading-relaxed">{feature.desc}</p>
                 </motion.div>
