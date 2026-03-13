@@ -1,3 +1,4 @@
+// lib/api/wallets.ts
 import { api } from './client';
 
 export interface Wallet {
@@ -8,10 +9,8 @@ export interface Wallet {
   current_balance: number;
   initial_balance: number;
   currency: string;
-  sync_email?: string;
   last_synced?: string;
   is_active: boolean;
-  is_default: boolean;
   created_at: string;
   updated_at: string;
 }
@@ -23,8 +22,8 @@ export interface WalletSummary {
 }
 
 export async function fetchWallets(): Promise<Wallet[]> {
-  const raw = await api.get<any>('/wallets');
-  return Array.isArray(raw) ? raw : (raw?.data ?? raw ?? []);
+  const { data } = await api.get<Wallet[]>('/wallets');
+  return Array.isArray(data) ? data : [];
 }
 
 export async function fetchWalletSummary(): Promise<WalletSummary> {
@@ -42,17 +41,20 @@ export async function fetchWalletSummary(): Promise<WalletSummary> {
 }
 
 export async function fetchWalletById(id: string): Promise<Wallet> {
-  return api.get<Wallet>(`/wallets/${id}`);
+  const { data } = await api.get<Wallet>(`/wallets/${id}`);
+  return data;
 }
 
-export async function createWallet(data: Partial<Wallet>): Promise<Wallet> {
-  return api.post<Wallet>('/wallets', data);
+export async function createWallet(payload: Partial<Wallet>): Promise<Wallet> {
+  const { data } = await api.post<Wallet>('/wallets', payload);
+  return data;
 }
 
-export async function updateWallet(id: string, data: Partial<Wallet>): Promise<Wallet> {
-  return api.put<Wallet>(`/wallets/${id}`, data);
+export async function updateWallet(id: string, payload: Partial<Wallet>): Promise<Wallet> {
+  const { data } = await api.put<Wallet>(`/wallets/${id}`, payload);
+  return data;
 }
 
 export async function deleteWallet(id: string): Promise<void> {
-  return api.delete(`/wallets/${id}`);
+  await api.delete(`/wallets/${id}`);
 }

@@ -1,5 +1,6 @@
-import { api } from "./client";
-import { Transaction, TransactionFilters } from "@/types/transaction.types";
+// lib/api/transactions.ts
+import { api } from './client';
+import { Transaction, TransactionFilters } from '@/types/transaction.types';
 
 export interface TransactionListResponse {
   transactions: Transaction[];
@@ -24,7 +25,7 @@ export interface SpendingByCategory {
 }
 
 export async function fetchTransactions(
-  filters?: TransactionFilters,
+  filters?: TransactionFilters
 ): Promise<TransactionListResponse> {
   const query: Record<string, any> = {};
   if (filters?.wallet_id) query.wallet_id = filters.wallet_id;
@@ -40,79 +41,66 @@ export async function fetchTransactions(
   if (filters?.sort_by) query.sort_by = filters.sort_by;
   if (filters?.sort_order) query.sort_order = filters.sort_order;
 
-  // BE returns { success, data: [...], pagination: {...} }
-  // api.get sudah unwrap ke .data, jadi raw = array of transactions + pagination terpisah
-  const raw = await api.get<any>("/transactions", query);
+  const { data, pagination } = await api.get<Transaction[]>('/transactions', query);
 
   return {
-    transactions: raw?.data ?? [],
-    total: raw?.pagination?.totalItems ?? 0,
-    totalItems: raw?.pagination?.totalItems ?? 0,
-    page: raw?.pagination?.currentPage ?? 1,
-    limit: raw?.pagination?.limit ?? 50,
-    totalPages: raw?.pagination?.totalPages ?? 1,
-  }
+    transactions: Array.isArray(data) ? data : [],
+    total: pagination?.totalItems ?? 0,
+    totalItems: pagination?.totalItems ?? 0,
+    page: pagination?.currentPage ?? 1,
+    limit: pagination?.limit ?? 50,
+    totalPages: pagination?.totalPages ?? 1,
+  };
 }
 
-export async function fetchRecentTransactions(
-  limit = 5,
-): Promise<Transaction[]> {
+export async function fetchRecentTransactions(limit = 5): Promise<Transaction[]> {
   const result = await fetchTransactions({
     limit,
-    sort_by: "transaction_date",
-    sort_order: "desc",
+    sort_by: 'transaction_date',
+    sort_order: 'desc',
   });
   return result.transactions ?? [];
 }
 
 export async function fetchTransactionSummary(
-  period: "week" | "month" | "year" = "month",
+  period: 'week' | 'month' | 'year' = 'month'
 ): Promise<TransactionSummary> {
-  // BE returns: { period, date_range, income, expense, net_flow }
-  const raw = await api.get<any>("/transactions/summary", { period });
-
+  const { data } = await api.get<any>('/transactions/summary', { period });
   return {
-    totalIncome: raw?.income ?? 0,
-    totalExpenses: raw?.expense ?? 0,
-    netFlow: raw?.net_flow ?? 0,
+    totalIncome: data?.income ?? 0,
+    totalExpenses: data?.expense ?? 0,
+    netFlow: data?.net_flow ?? 0,
     period,
   };
 }
 
 export async function fetchSpendingByCategory(
-  period: "week" | "month" | "year" = "month",
+  period: 'week' | 'month' | 'year' = 'month'
 ): Promise<SpendingByCategory[]> {
-  // BE returns: { period, total_expense, breakdown: [{category_name, total, percentage}] }
-  const raw = await api.get<any>("/transactions/spending-by-category", {
-    period,
-  });
-
-  const breakdown: any[] = raw?.breakdown ?? [];
-
+  const { data } = await api.get<any>('/transactions/spending-by-category', { period });
+  const breakdown: any[] = data?.breakdown ?? [];
   return breakdown.map((item) => ({
-    category: item.category_name ?? "Lainnya",
+    category: item.category_name ?? 'Lainnya',
     amount: item.total ?? 0,
     percentage: item.percentage ?? 0,
   }));
 }
 
 export async function fetchTransactionById(id: string): Promise<Transaction> {
-  return api.get<Transaction>(`/transactions/${id}`);
+  const { data } = await api.get<Transaction>(`/transactions/${id}`);
+  return data;
 }
 
-export async function createTransaction(
-  data: Partial<Transaction>,
-): Promise<Transaction> {
-  return api.post<Transaction>("/transactions", data);
+export async function createTransaction(payload: Partial<Transaction>): Promise<Transaction> {
+  const { data } = await api.post<Transaction>('/transactions', payload);
+  return data;
 }
 
-export async function updateTransaction(
-  id: string,
-  data: Partial<Transaction>,
-): Promise<Transaction> {
-  return api.put<Transaction>(`/transactions/${id}`, data);
+export async function updateTransaction(id: string, payload: Partial<Transaction>): Promise<Transaction> {
+  const { data } = await api.put<Transaction>(`/transactions/${id}`, payload);
+  return data;
 }
 
 export async function deleteTransaction(id: string): Promise<void> {
-  return api.delete(`/transactions/${id}`);
+  await api.delete(`/transactions/${id}`);
 }

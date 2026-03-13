@@ -26,7 +26,7 @@ interface DashboardData {
   totalExpenses: number;
   netFlow: number;
   walletCount: number;
-  totalTransactions: number; // FIX: tambah field ini
+  totalTransactions: number;
   recentTransactions: Transaction[];
   spendingByCategory: Array<{ category: string; amount: number; percentage: number }>;
 }
@@ -87,7 +87,6 @@ function buildChartData(transactions: Transaction[], dateRange: DateRange): Char
       const toMidnight = new Date(to); toMidnight.setHours(23, 59, 59, 999);
       return txDate >= fromMidnight && txDate <= toMidnight;
     });
-
     const expense = inRange.filter((tx) => tx.type === 'expense').reduce((sum, tx) => sum + Number(tx.amount), 0);
     const income = inRange.filter((tx) => tx.type === 'income').reduce((sum, tx) => sum + Number(tx.amount), 0);
     return { label, expense, income, height: 0 };
@@ -103,13 +102,11 @@ function buildChartData(transactions: Transaction[], dateRange: DateRange): Char
   });
 }
 
-// FIX: Format lastSynced timestamp yang human-readable
 function formatLastSynced(date: Date): string {
   const now = new Date();
   const diffMs = now.getTime() - date.getTime();
   const diffMins = Math.floor(diffMs / 60000);
   const diffHours = Math.floor(diffMs / 3600000);
-
   if (diffMins < 1) return 'baru saja';
   if (diffMins < 60) return `${diffMins} menit lalu`;
   if (diffHours < 24) return `${diffHours} jam lalu`;
@@ -125,7 +122,6 @@ export default function DashboardOverviewPage() {
   });
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
-  // FIX: lastSynced pakai Date object bukan string
   const [lastSynced, setLastSynced] = useState<Date | null>(null);
   const [calendarOpen, setCalendarOpen] = useState(false);
   const [chartBars, setChartBars] = useState<ChartBar[]>([]);
@@ -147,8 +143,7 @@ export default function DashboardOverviewPage() {
         sort_by: 'transaction_date',
         sort_order: 'asc',
       });
-      const bars = buildChartData(result.transactions, range);
-      setChartBars(bars);
+      setChartBars(buildChartData(result.transactions, range));
     } catch {
       // silent fail
     } finally {
@@ -164,16 +159,13 @@ export default function DashboardOverviewPage() {
         fetchTransactionSummary('month'),
         fetchRecentTransactions(5),
         fetchSpendingByCategory('month'),
-        // FIX: fetch total transaksi bulan ini secara terpisah
         fetchTransactions({
           start_date: startOfMonth(new Date()).toISOString(),
           end_date: new Date().toISOString(),
-          limit: 1, // cukup ambil 1, yang penting dapat total dari pagination
+          limit: 1,
         }),
       ]);
 
-      console.log('MONTHLY COUNT VALUE:', monthlyCount);
-      console.log('TOTAL TX:', monthlyCount.status === 'fulfilled' ? monthlyCount.value.totalItems : 'REJECTED');
       setData({
         totalBalance: walletSummary.status === 'fulfilled' ? walletSummary.value.totalBalance : 0,
         walletCount: walletSummary.status === 'fulfilled' ? walletSummary.value.walletCount : 0,
@@ -182,8 +174,7 @@ export default function DashboardOverviewPage() {
         netFlow: summary.status === 'fulfilled' ? summary.value.netFlow : 0,
         recentTransactions: recentTx.status === 'fulfilled' ? recentTx.value : [],
         spendingByCategory: spending.status === 'fulfilled' ? spending.value : [],
-        // FIX: pakai total dari pagination, bukan panjang array
-        totalTransactions: monthlyCount.status === 'fulfilled' ? (monthlyCount.value.totalItems ?? monthlyCount.value.total ?? 0) : 0,
+        totalTransactions: monthlyCount.status === 'fulfilled' ? monthlyCount.value.totalItems : 0,
       });
     } catch {
       toast.error('Gagal memuat data dashboard');
@@ -197,7 +188,6 @@ export default function DashboardOverviewPage() {
     try {
       await api.post('/sync/trigger');
       toast.success('Sinkronisasi berhasil!');
-      // FIX: simpan timestamp sync sebagai Date object
       setLastSynced(new Date());
       await loadDashboardData();
       await loadChartData(dateRange);
@@ -244,23 +234,16 @@ export default function DashboardOverviewPage() {
           <h2 className="text-2xl font-bold text-slate-900 dark:text-white">Halo! 👋</h2>
           <p className="text-sm text-slate-500 font-medium flex items-center gap-1.5 mt-0.5">
             <RefreshCcw className="h-3 w-3" />
-            {/* FIX: pakai formatLastSynced() */}
             {lastSynced ? `Terakhir sinkronisasi: ${formatLastSynced(lastSynced)}` : 'Belum pernah sinkronisasi'}
           </p>
         </div>
         <div className="flex items-center gap-3">
-          <Button
-            onClick={() => router.push('/transactions/new')}
-            className="bg-sky-500 hover:bg-sky-500/90 text-white font-bold gap-2 rounded-xl shadow-md"
-          >
-            <Plus className="h-4 w-4" />
-            Tambah Transaksi
+          <Button onClick={() => router.push('/transactions/new')}
+            className="bg-sky-500 hover:bg-sky-500/90 text-white font-bold gap-2 rounded-xl shadow-md">
+            <Plus className="h-4 w-4" /> Tambah Transaksi
           </Button>
-          <Button
-            onClick={handleSync}
-            disabled={syncing}
-            className="bg-[#0da2e7] hover:bg-[#0da2e7]/90 text-white font-bold gap-2 rounded-xl shadow-md"
-          >
+          <Button onClick={handleSync} disabled={syncing}
+            className="bg-[#0da2e7] hover:bg-[#0da2e7]/90 text-white font-bold gap-2 rounded-xl shadow-md">
             <RefreshCcw className={`h-4 w-4 ${syncing ? 'animate-spin' : ''}`} />
             {syncing ? 'Syncing...' : 'Sync Sekarang'}
           </Button>
@@ -275,8 +258,7 @@ export default function DashboardOverviewPage() {
             <h3 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">{formatCurrency(data.totalBalance)}</h3>
           )}
           <div className="flex items-center gap-1.5 text-emerald-500 text-sm font-bold">
-            <TrendingUp className="h-4 w-4" />
-            <span>{data.walletCount} dompet aktif</span>
+            <TrendingUp className="h-4 w-4" /><span>{data.walletCount} dompet aktif</span>
           </div>
         </div>
 
@@ -433,8 +415,9 @@ export default function DashboardOverviewPage() {
             <div className="grid grid-cols-2 gap-4 p-4 bg-slate-50 dark:bg-gray-800 rounded-xl">
               <div>
                 <p className="text-[10px] text-slate-400 uppercase font-bold tracking-wider mb-1">Bulan ini</p>
-                {/* FIX: pakai totalTransactions bukan recentTransactions.length */}
-                <p className="text-md font-bold text-slate-900 dark:text-white">{data.totalTransactions} Transaksi</p>
+                <p className="text-md font-bold text-slate-900 dark:text-white">
+                  {loading ? '...' : `${data.totalTransactions} Transaksi`}
+                </p>
               </div>
               <div>
                 <p className="text-[10px] text-slate-400 uppercase font-bold tracking-wider mb-1">Status</p>
