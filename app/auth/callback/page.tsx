@@ -47,15 +47,8 @@ export default function AuthCallbackPage() {
                 google_refresh_token: session.provider_refresh_token || "",
                 expires_in: session.expires_in,
               });
-
               toast.success("Gmail connected successfully!");
-
-              // Redirect ke sync settings kalo dari connect Gmail
-              if (redirectTo.includes("sync")) {
-                router.push(redirectTo);
-              } else {
-                router.push("/sync/settings?connected=true");
-              }
+              router.push(redirectTo);
             } catch (err: any) {
               console.error("Failed to store Gmail token:", err);
               toast.error("Gmail connected but token storage failed");
