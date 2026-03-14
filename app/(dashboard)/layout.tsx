@@ -11,10 +11,10 @@ export default async function DashboardLayout({
   const supabase = await createClient()
   
   const {
-    data: { session },
-  } = await supabase.auth.getSession()
+    data: { user },
+  } = await supabase.auth.getUser()
 
-  if (!session) {
+  if (!user) {
     redirect('/login')
   }
 
@@ -23,7 +23,7 @@ export default async function DashboardLayout({
       <Sidebar />
       
       <div className="lg:pl-64">
-        <Header user={session.user} />
+        <Header user={user} />
         <main className="p-6">
           {children}
         </main>

@@ -18,7 +18,7 @@ export default function LoginPage() {
   const [isClient, setIsClient] = useState(false)
   const router = useRouter()
   const searchParams = useSearchParams()
-  const redirectTo = searchParams.get('redirect') || '/dashboard'
+  const redirectTo = searchParams.get('redirect') || '/dashboard/overview'
   const supabase = createBrowserClient()
 
   useEffect(() => {
@@ -192,7 +192,7 @@ export default function LoginPage() {
 
       {/* Right Side: Login Section - MOBILE FIXED */}
       <div className="flex-1 flex flex-col justify-center items-center p-6 sm:p-8 bg-gradient-to-br from-background-light via-white to-background-light dark:from-background-dark dark:via-gray-900 dark:to-background-dark min-h-screen overflow-hidden">
-        <div className="w-full max-w-[420px] flex flex-col">
+        <div className="w-full max-w-105 flex flex-col">
           {/* Mobile Logo - DIPERPANJANG JARAKNYA */}
           <div className="flex flex-col items-center gap-4 mb-12">
             <div className="size-16 bg-[#0da2e7] rounded-2xl flex items-center justify-center shadow-xl">

@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { fetchTransactions, fetchRecentTransactions, fetchTransactionSummary, fetchSpendingByCategory } from '@/lib/api/transactions';
+import { GmailTokenBanner } from '@/components/sync/GmailTokenBanner';
 import { SyncNotification, type SyncState } from '@/components/sync/SyncNotification';
 import { fetchWalletSummary } from '@/lib/api/wallets';
 import { Transaction } from '@/types/transaction.types';
@@ -249,6 +250,7 @@ export default function DashboardOverviewPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
+      <GmailTokenBanner />
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-bold text-slate-900 dark:text-white">Halo! 👋</h2>

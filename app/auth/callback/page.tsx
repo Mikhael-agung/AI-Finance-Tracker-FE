@@ -10,7 +10,7 @@ import { toast } from "sonner";
 export default function AuthCallbackPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const redirectTo = searchParams.get("redirect") || "/dashboard";
+  const redirectTo = searchParams.get("redirect") || "/dashboard/overview";
 
   useEffect(() => {
     const handleAuthCallback = async () => {
