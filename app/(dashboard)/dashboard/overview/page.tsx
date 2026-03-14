@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { fetchTransactions, fetchRecentTransactions, fetchTransactionSummary, fetchSpendingByCategory } from '@/lib/api/transactions';
+import { SyncNotification, type SyncState } from '@/components/sync/SyncNotification';
 import { fetchWalletSummary } from '@/lib/api/wallets';
 import { Transaction } from '@/types/transaction.types';
 import { useRouter } from 'next/navigation';
@@ -126,11 +127,15 @@ export default function DashboardOverviewPage() {
   const [calendarOpen, setCalendarOpen] = useState(false);
   const [chartBars, setChartBars] = useState<ChartBar[]>([]);
   const [chartLoading, setChartLoading] = useState(false);
-
   const [dateRange, setDateRange] = useState<DateRange>({
     from: startOfMonth(new Date()),
     to: new Date(),
   });
+
+  const [syncState, setSyncState] = useState<SyncState>('idle');
+  const [newTransactions, setNewTransactions] = useState(0);
+  const [syncsUsed, setSyncsUsed] = useState(0);
+  const MAX_SYNCS = 99999;
 
   const loadChartData = useCallback(async (range: DateRange) => {
     if (!range.from || !range.to) return;
@@ -184,15 +189,30 @@ export default function DashboardOverviewPage() {
   };
 
   const handleSync = async () => {
+    // if (syncsUsed >= MAX_SYNCS) {
+    //   setSyncState('limit_reached');
+    //   return;
+    // }
+
     setSyncing(true);
     try {
-      await api.post('/sync/trigger');
-      toast.success('Sinkronisasi berhasil!');
+      const result = await api.post<{new_transactions?: number; transactions_added?: number}>('/sync/trigger');
+      const count = result.data?.new_transactions ?? result.data?.transactions_added ?? 0;
+
+      setNewTransactions(count);
+      setSyncsUsed((prev) => prev + 1);
       setLastSynced(new Date());
+      setSyncState('success');
+
       await loadDashboardData();
       await loadChartData(dateRange);
-    } catch {
-      toast.error('Sinkronisasi gagal');
+    } catch (err: any) {
+      const msg = err?.message ?? '';
+      if (msg.toLowerCase().includes('limit') || msg.toLowerCase().includes('wait')) {
+        setSyncState('limit_reached');
+      } else {
+        toast.error('Sinkronisasi gagal');
+      }
     } finally {
       setSyncing(false);
     }
@@ -542,6 +562,15 @@ export default function DashboardOverviewPage() {
           </button>
         </div>
       </div>
+
+      <SyncNotification
+        state={syncState}
+        newTransactions={newTransactions}
+        syncsUsed={syncsUsed}
+        maxSyncs={MAX_SYNCS}
+        onClose={() => setSyncState('idle')}
+      />
+
     </div>
   );
 }

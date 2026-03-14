@@ -20,12 +20,12 @@ export default function AuthCallbackPage() {
         const { data } = await supabase.auth.getSession();
 
         // 🚨 TAMPILIN DI CONSOLE BROWSER
-        console.log('========== CALLBACK DEBUG ==========');
-        console.log('SESSION:', data.session);
-        console.log('PROVIDER_TOKEN:', data.session?.provider_token);
-        console.log('PROVIDER_REFRESH_TOKEN:', data.session?.provider_refresh_token);
-        console.log('USER:', data.session?.user);
-        console.log('=====================================')
+        // console.log('========== CALLBACK DEBUG ==========');
+        // console.log('SESSION:', data.session);
+        // console.log('PROVIDER_TOKEN:', data.session?.provider_token);
+        // console.log('PROVIDER_REFRESH_TOKEN:', data.session?.provider_refresh_token);
+        // console.log('USER:', data.session?.user);
+        // console.log('=====================================')
         // Get the session from URL hash
         const {
           data: { session },
