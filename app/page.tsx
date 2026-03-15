@@ -9,7 +9,16 @@ export default function HomePage() {
   const [isClient, setIsClient] = useState(false)
 
   useEffect(() => {
+    const html = document.documentElement
+    html.classList.remove('dark')
+    html.classList.add('light')
+    html.style.colorScheme = 'light'
     setIsClient(true)
+
+    return () => {
+      html.classList.remove('light')
+      html.style.colorScheme = ''
+    }
   }, [])
 
   if (!isClient) {

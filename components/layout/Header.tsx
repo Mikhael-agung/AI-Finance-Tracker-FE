@@ -4,9 +4,11 @@ import { Button } from '@/components/ui/button'
 import { ThemeToggle } from '@/components/layout/ThemeToggle'
 import { UserNav } from '@/components/layout/UserNav'
 import { Menu } from 'lucide-react'
-import { Sheet, SheetContent, SheetTrigger } from '@/components/ui/sheet'
+import { Sheet, SheetContent, SheetTrigger, SheetTitle } from '@/components/ui/sheet'
+import { VisuallyHidden } from '@radix-ui/react-visually-hidden'
 import { Sidebar } from './Sidebar'
 import { User } from '@supabase/supabase-js'
+
 
 interface HeaderProps {
   user: User
@@ -24,6 +26,9 @@ export function Header({ user }: HeaderProps) {
               </Button>
             </SheetTrigger>
             <SheetContent side="left" className="w-64 p-0">
+              <VisuallyHidden>
+                <SheetTitle>Menu Navigasi</SheetTitle>
+              </VisuallyHidden>
               <Sidebar />
             </SheetContent>
           </Sheet>
