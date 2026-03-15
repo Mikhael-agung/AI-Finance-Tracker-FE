@@ -18,14 +18,16 @@ export function GmailTokenBanner() {
         const checkToken = async () => {
             try {
                 const { data } = await api.get<any>('/sync/status');
-                if (data?.is_expired || !data?.connected) {
+                // BE return can_sync_now dan email_connected, bukan connected
+                const isConnected = data?.can_sync_now || data?.email_connected;
+                const isExpired = data?.is_expired || false;
+                if (isExpired || !isConnected) {
                     setShow(true);
                 }
             } catch {
-                // silent fail
+                // silent fail — kalau gagal fetch, jangan show banner
             }
         };
-
         checkToken();
     }, []);
 
