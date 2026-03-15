@@ -182,6 +182,16 @@ export default function DashboardOverviewPage() {
         spendingByCategory: spending.status === 'fulfilled' ? spending.value : [],
         totalTransactions: monthlyCount.status === 'fulfilled' ? monthlyCount.value.totalItems : 0,
       });
+
+      try {
+        const syncStatus = await api.get<any>('/sync/status');
+        if (syncStatus.data?.last_sync) {
+          setLastSynced(new Date(syncStatus.data.last_sync));
+        }
+      } catch {
+        // silent fail
+      }
+
     } catch {
       toast.error('Gagal memuat data dashboard');
     } finally {
@@ -197,7 +207,7 @@ export default function DashboardOverviewPage() {
 
     setSyncing(true);
     try {
-      const result = await api.post<{new_transactions?: number; transactions_added?: number}>('/sync/trigger');
+      const result = await api.post<{ new_transactions?: number; transactions_added?: number }>('/sync/trigger');
       const count = result.data?.new_transactions ?? result.data?.transactions_added ?? 0;
 
       setNewTransactions(count);
