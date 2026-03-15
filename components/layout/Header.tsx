@@ -6,7 +6,7 @@ import { UserNav } from '@/components/layout/UserNav'
 import { Menu } from 'lucide-react'
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from '@/components/ui/sheet'
 import { VisuallyHidden } from '@radix-ui/react-visually-hidden'
-import { Sidebar } from './Sidebar'
+import { Sidebar, MobileSidebar } from './Sidebar'
 import { User } from '@supabase/supabase-js'
 
 
@@ -29,7 +29,7 @@ export function Header({ user }: HeaderProps) {
               <VisuallyHidden>
                 <SheetTitle>Menu Navigasi</SheetTitle>
               </VisuallyHidden>
-              <Sidebar />
+              <MobileSidebar />
             </SheetContent>
           </Sheet>
         </div>
