@@ -39,7 +39,7 @@ export function GmailTokenBanner() {
 
     const handleReconnect = async () => {
         try {
-            const result = await api.post<any>('/auth/google/login', { redirectUrl: `${window.location.origin}/api/auth/google/callback`}); 
+            const result = await api.get<any>('/auth/connect-gmail', { redirectUrl: `${window.location.origin}/api/auth/google/callback`}); 
 
             if(result?.data?.url) {
                 window.location.href = result.data.url;
