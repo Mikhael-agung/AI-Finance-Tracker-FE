@@ -45,7 +45,7 @@ export default function AuthCallbackPage() {
               await syncApi.storeGoogleToken({
                 google_token: session.provider_token,
                 google_refresh_token: session.provider_refresh_token || "",
-                expires_in: session.expires_in,
+                expires_in: 3600, // 1 jam
               });
               toast.success("Gmail connected successfully!");
               router.push(redirectTo);
