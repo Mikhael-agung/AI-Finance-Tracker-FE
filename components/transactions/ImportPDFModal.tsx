@@ -11,7 +11,7 @@ import {
 import { formatCurrency } from '@/lib/utils/formatters';
 import { motion, AnimatePresence } from 'framer-motion';
 
-type BankType = 'BCA' | 'BNI_WONDR' | 'BNI_MOBILE';
+type BankType = '' | 'BCA' | 'BNI_WONDR' | 'BNI_MOBILE';
 
 interface PreviewTransaction {
     date: string;
@@ -31,6 +31,7 @@ interface ImportResult {
 }
 
 const BANK_OPTIONS: { value: BankType; label: string }[] = [
+    { value: '', label: '🔍 Auto-detect (Otomatis)' },
     { value: 'BCA', label: 'BCA (myBCA / KlikBCA)' },
     { value: 'BNI_WONDR', label: 'BNI Wondr' },
     { value: 'BNI_MOBILE', label: 'BNI Mobile Banking' },
@@ -47,7 +48,7 @@ export function ImportPDFModal({ open, onClose }: ImportPDFModalProps) {
     const [loadingWallets, setLoadingWallets] = useState(true);
     const [selectedFile, setSelectedFile] = useState<File | null>(null);
     const [selectedWallet, setSelectedWallet] = useState<string>('');
-    const [selectedBank, setSelectedBank] = useState<BankType>('BCA');
+    const [selectedBank, setSelectedBank] = useState<BankType>('');
     const [isDragging, setIsDragging] = useState(false);
     const [previewing, setPreviewing] = useState(false);
     const [importing, setImporting] = useState(false);
@@ -103,14 +104,13 @@ export function ImportPDFModal({ open, onClose }: ImportPDFModalProps) {
         const file = e.dataTransfer.files[0];
         if (file) handleFileSelect(file);
     }, []);
-
     const handlePreview = async () => {
         if (!selectedFile) { toast.error('Pilih file PDF terlebih dahulu'); return; }
         setPreviewing(true);
         try {
             const formData = new FormData();
             formData.append('file', selectedFile);
-            formData.append('bank_type', selectedBank);
+            if (selectedBank) formData.append('bank_type', selectedBank); // ← hanya kalau dipilih manual
             const result = await api.post<any>('/import/pdf/preview', formData) as any;
             setPreviewData(result?.preview || result?.data?.preview || []);
             setPreviewTotal(result?.total_found || result?.data?.total_found || 0);
@@ -129,11 +129,15 @@ export function ImportPDFModal({ open, onClose }: ImportPDFModalProps) {
             const formData = new FormData();
             formData.append('file', selectedFile);
             formData.append('wallet_id', selectedWallet);
-            formData.append('bank_type', selectedBank);
+            if (selectedBank) formData.append('bank_type', selectedBank); // ← hanya kalau dipilih manual
             const raw = await api.post<any>('/import/pdf', formData) as any;
             const result = (raw?.bank ? raw : raw?.data) as ImportResult;
-            setImportResult(result);
-            toast.success('Import berhasil! ' + result?.inserted + ' transaksi ditambahkan');
+            if (result?.inserted !== undefined) {
+                setImportResult(result);
+                toast.success(`Import berhasil! ${result?.inserted} transaksi ditambahkan`);
+            } else {
+                toast.error('Response tidak valid dari server');
+            }
         } catch (err: any) {
             toast.error(err.message || 'Import gagal');
         } finally {
@@ -291,7 +295,7 @@ export function ImportPDFModal({ open, onClose }: ImportPDFModalProps) {
                                         className="w-full bg-[#161b22] border border-slate-700 rounded-xl py-3 px-4 text-white text-sm focus:ring-2 focus:ring-[#0da2e7] focus:border-transparent outline-none transition-all">
                                         {loadingWallets ? <option>Memuat...</option>
                                             : wallets.length === 0 ? <option>Tidak ada dompet</option>
-                                            : wallets.map((w) => <option key={w.id} value={w.id}>{w.name} ({w.bank})</option>)}
+                                                : wallets.map((w) => <option key={w.id} value={w.id}>{w.name} ({w.bank})</option>)}
                                     </select>
                                 </div>
                                 <div className="space-y-2">
@@ -305,6 +309,7 @@ export function ImportPDFModal({ open, onClose }: ImportPDFModalProps) {
                             </motion.div>
 
                             {/* Preview Results */}
+                            {/* Preview Results */}
                             <AnimatePresence>
                                 {previewData && previewData.length > 0 && (
                                     <motion.div
@@ -317,23 +322,55 @@ export function ImportPDFModal({ open, onClose }: ImportPDFModalProps) {
                                         <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">
                                             Preview ({previewTotal} transaksi, menampilkan {previewData.length})
                                         </p>
-                                        <div className="max-h-40 overflow-y-auto space-y-1.5 pr-1">
+
+                                        {/* Header kolom */}
+                                        <div className="grid grid-cols-12 gap-2 px-3 py-1.5">
+                                            <p className="col-span-2 text-[10px] font-bold text-slate-500 uppercase">Tanggal</p>
+                                            <p className="col-span-5 text-[10px] font-bold text-slate-500 uppercase">Merchant</p>
+                                            <p className="col-span-1 text-[10px] font-bold text-slate-500 uppercase text-center">Tipe</p>
+                                            <p className="col-span-3 text-[10px] font-bold text-slate-500 uppercase text-right">Nominal</p>
+                                        </div>
+
+                                        <div className="max-h-52 overflow-y-auto space-y-1 pr-1">
                                             {previewData.map((tx, i) => (
                                                 <motion.div key={i}
                                                     initial={{ opacity: 0, x: -10 }}
                                                     animate={{ opacity: 1, x: 0 }}
-                                                    transition={{ delay: i * 0.04 }}
-                                                    className="flex items-center justify-between p-3 bg-slate-800/50 rounded-lg"
+                                                    transition={{ delay: i * 0.03 }}
+                                                    className="grid grid-cols-12 gap-2 items-center px-3 py-2.5 bg-slate-800/50 rounded-lg hover:bg-slate-800 transition-colors"
                                                 >
-                                                    <div className="min-w-0">
-                                                        <p className="text-xs font-bold text-white truncate max-w-[220px]">{tx.merchant || tx.description}</p>
-                                                        <p className="text-[10px] text-slate-400">
-                                                            {new Date(tx.date).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}
+                                                    {/* Tanggal */}
+                                                    <div className="col-span-2 min-w-0">
+                                                        <p className="text-[10px] text-slate-300 font-medium">
+                                                            {new Date(tx.date).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })}
+                                                        </p>
+                                                        <p className="text-[9px] text-slate-500">
+                                                            {new Date(tx.date).getFullYear()}
                                                         </p>
                                                     </div>
-                                                    <p className={'text-xs font-bold shrink-0 ml-2 ' + (tx.type === 'income' ? 'text-emerald-400' : 'text-rose-400')}>
-                                                        {tx.type === 'expense' ? '-' : '+'}{formatCurrency(tx.amount)}
-                                                    </p>
+
+                                                    {/* Merchant */}
+                                                    <div className="col-span-5 min-w-0">
+                                                        <p className="text-xs font-bold text-white truncate">{tx.merchant}</p>
+                                                        <p className="text-[9px] text-slate-500 truncate">{tx.description}</p>
+                                                    </div>
+
+                                                    {/* Tipe */}
+                                                    <div className="col-span-2 flex justify-center items-center">
+                                                        <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full ${tx.type === 'income'
+                                                            ? 'bg-emerald-500/20 text-emerald-400'
+                                                            : 'bg-rose-500/20 text-rose-400'
+                                                            }`}>
+                                                            {tx.type === 'income' ? 'Masuk' : 'Keluar'}
+                                                        </span>
+                                                    </div>
+
+                                                    {/* Nominal */}
+                                                    <div className="col-span-3 text-right">
+                                                        <p className={`text-xs font-bold ${tx.type === 'income' ? 'text-emerald-400' : 'text-rose-400'}`}>
+                                                            {tx.type === 'expense' ? '-' : '+'}{formatCurrency(tx.amount)}
+                                                        </p>
+                                                    </div>
                                                 </motion.div>
                                             ))}
                                         </div>
