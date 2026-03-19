@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
@@ -13,10 +13,11 @@ import { useRouter } from 'next/navigation';
 import { format, subDays, startOfMonth, eachDayOfInterval, eachWeekOfInterval, endOfWeek, parseISO } from 'date-fns';
 import { id } from 'date-fns/locale';
 import type { DateRange } from 'react-day-picker';
+import { ImportPDFModal } from '@/components/transactions/ImportPDFModal';
 import {
   RefreshCcw, Plus, TrendingUp, TrendingDown, CheckCircle2,
   Mail, AlertTriangle, Car, ShoppingBag, UtensilsCrossed,
-  Wallet, CalendarIcon, ReceiptText,
+  Wallet, CalendarIcon, ReceiptText, Pencil, FileUp, ChevronDown,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { formatCurrency } from '@/lib/utils/formatters';
@@ -50,6 +51,7 @@ const CATEGORY_ICONS: Record<string, React.ReactNode> = {
 
 const PIE_COLORS = ['#0da2e7', '#3b82f6', '#8b5cf6', '#f43f5e', '#f59e0b', '#10b981'];
 
+
 function getCategoryIcon(category: string) {
   const key = category.toLowerCase();
   for (const [k, icon] of Object.entries(CATEGORY_ICONS)) {
@@ -58,22 +60,10 @@ function getCategoryIcon(category: string) {
   return CATEGORY_ICONS.default;
 }
 
-// function getInitialDateRange(): DateRange {
-//   if (typeof window !== 'undefined') {
-//     const saved = localStorage.getItem('dashboard_preset');
-//     if (saved) {
-//       const days = parseInt(saved);
-//       if (days === -1) return { from: startOfMonth(new Date()), to: new Date() };
-//       return { from: subDays(new Date(), days), to: new Date() };
-//     }
-//   }
-//   return { from: startOfMonth(new Date()), to: new Date() };
-// }
-
 function buildChartData(transactions: Transaction[], dateRange: DateRange): ChartBar[] {
   if (!dateRange.from || !dateRange.to) return [];
   const diffDays = Math.ceil((dateRange.to.getTime() - dateRange.from.getTime()) / (1000 * 60 * 60 * 24));
-  const groupByWeek = diffDays > 60; // ← fix: dari 14 jadi 60
+  const groupByWeek = diffDays > 60;
   let buckets: { label: string; from: Date; to: Date }[] = [];
   if (groupByWeek) {
     const weeks = eachWeekOfInterval({ start: dateRange.from, end: dateRange.to }, { weekStartsOn: 1 });
@@ -132,6 +122,7 @@ const CustomTooltip = ({ active, payload }: any) => {
 
 export default function DashboardOverviewPage() {
   const router = useRouter();
+  const [importModalOpen, setImportModalOpen] = useState(false);
   const [data, setData] = useState<DashboardData>({
     totalBalance: 0, totalIncome: 0, totalExpenses: 0, netFlow: 0,
     walletCount: 0, totalTransactions: 0,
@@ -147,11 +138,24 @@ export default function DashboardOverviewPage() {
     from: startOfMonth(new Date()),
     to: new Date(),
   });
+  const [addMenuOpen, setAddMenuOpen] = useState(false);
+  const addMenuRef = useRef<HTMLDivElement>(null);
 
   const [syncState, setSyncState] = useState<SyncState>('idle');
   const [newTransactions, setNewTransactions] = useState(0);
   const [syncsUsed, setSyncsUsed] = useState(0);
   const MAX_SYNCS = 5;
+
+  // Close dropdown on outside click
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (addMenuRef.current && !addMenuRef.current.contains(e.target as Node)) {
+        setAddMenuOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const loadChartData = useCallback(async (range: DateRange) => {
     if (!range.from || !range.to) return;
@@ -232,24 +236,22 @@ export default function DashboardOverviewPage() {
   const handleDateRangeSelect = (range: DateRange | undefined) => {
     if (!range) return;
     setDateRange(range);
-    // Kalender custom — tidak simpan ke localStorage
     if (range.from && range.to) { setCalendarOpen(false); loadChartData(range); }
   };
 
   const setPreset = (days: number) => {
-    localStorage.setItem('dashboard_preset', String(days)); // ← simpan preset
+    localStorage.setItem('dashboard_preset', String(days));
     const range = { from: subDays(new Date(), days), to: new Date() };
     setDateRange(range); setCalendarOpen(false); loadChartData(range);
   };
 
   const setPresetMonth = () => {
-    localStorage.setItem('dashboard_preset', '-1'); // ← simpan preset bulan ini
+    localStorage.setItem('dashboard_preset', '-1');
     const range = { from: startOfMonth(new Date()), to: new Date() };
     setDateRange(range); setCalendarOpen(false); loadChartData(range);
   };
 
   useEffect(() => {
-    // Load preset dari localStorage setelah mount (client only)
     const saved = localStorage.getItem('dashboard_preset');
     if (saved) {
       const days = parseInt(saved);
@@ -290,10 +292,54 @@ export default function DashboardOverviewPage() {
           </p>
         </div>
         <div className="flex items-center gap-3">
-          <Button onClick={() => router.push('/transactions/new')}
-            className="bg-sky-500 hover:bg-sky-500/90 text-white font-bold gap-2 rounded-xl shadow-md">
-            <Plus className="h-4 w-4" /> Tambah Transaksi
-          </Button>
+
+          {/* Tambah Transaksi Dropdown */}
+          <div className="relative" ref={addMenuRef}>
+            <Button
+              onClick={() => setAddMenuOpen((prev) => !prev)}
+              className="bg-sky-500 hover:bg-sky-500/90 text-white font-bold gap-2 rounded-xl shadow-md"
+            >
+              <Plus className="h-4 w-4" />
+              Tambah Transaksi
+              <ChevronDown className={`h-3.5 w-3.5 transition-transform duration-200 ${addMenuOpen ? 'rotate-180' : ''}`} />
+            </Button>
+
+            {/* Dropdown Menu */}
+            {addMenuOpen && (
+              <div className="absolute top-full right-0 mt-2 w-72 bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-700 rounded-2xl shadow-2xl z-50 overflow-hidden animate-in fade-in slide-in-from-top-2 duration-150">
+                <div className="p-2 space-y-1">
+                  {/* Input Manual */}
+                  <button
+                    onClick={() => { setAddMenuOpen(false); router.push('/transactions/new'); }}
+                    className="w-full flex items-start gap-3 p-3 rounded-xl hover:bg-slate-50 dark:hover:bg-gray-800 transition-colors group text-left"
+                  >
+                    <div className="w-10 h-10 rounded-lg bg-blue-500/10 flex items-center justify-center shrink-0 group-hover:bg-blue-500/20 transition-colors">
+                      <Pencil className="h-5 w-5 text-blue-500" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-bold text-slate-900 dark:text-white">Input Manual</p>
+                      <p className="text-[11px] text-slate-400 mt-0.5">Tambah transaksi secara manual</p>
+                    </div>
+                  </button>
+
+                  {/* Import PDF */}
+                  <button
+                    onClick={() => { setAddMenuOpen(false); setImportModalOpen(true); }}
+                    className="w-full flex items-start gap-3 p-3 rounded-xl hover:bg-slate-50 dark:hover:bg-gray-800 transition-colors group text-left"
+                  >
+                    <div className="w-10 h-10 rounded-lg bg-emerald-500/10 flex items-center justify-center shrink-0 group-hover:bg-emerald-500/20 transition-colors">
+                      <FileUp className="h-5 w-5 text-emerald-500" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-bold text-slate-900 dark:text-white">Import Mutasi Bank</p>
+                      <p className="text-[11px] text-slate-400 mt-0.5">Upload PDF dari BCA, BNI Wondr, atau BNI Mobile</p>
+                    </div>
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+
           <Button onClick={handleSync} disabled={syncing}
             className="bg-[#0da2e7] hover:bg-[#0da2e7]/90 text-white font-bold gap-2 rounded-xl shadow-md">
             <RefreshCcw className={`h-4 w-4 ${syncing ? 'animate-spin' : ''}`} />
@@ -404,11 +450,9 @@ export default function DashboardOverviewPage() {
             </div>
           ) : (
             <>
-              {/* Chart bars — tinggi diperbesar biar nominal di atas muat */}
               <div className="h-44 w-full bg-slate-50 dark:bg-gray-800 rounded-lg flex items-end px-3 pb-2 gap-1 overflow-x-auto">
                 {chartBars.map((bar, i) => (
                   <div key={i} className="flex-1 min-w-6 flex flex-col justify-end items-center relative" style={{ height: '100%' }}>
-                    {/* Nominal - langsung tanpa wrapper div */}
                     {bar.expense > 0 && (
                       <span
                         className="absolute text-[8px] font-bold text-slate-400 dark:text-slate-400 whitespace-nowrap pointer-events-none z-10"
@@ -433,8 +477,6 @@ export default function DashboardOverviewPage() {
                   </div>
                 ))}
               </div>
-
-              {/* Labels simetris — setiap bar punya label */}
               <div className="flex mt-2 px-3 gap-1">
                 {chartBars.map((bar, i) => (
                   <div key={i} className="flex-1 min-w-6 text-center">
@@ -444,7 +486,6 @@ export default function DashboardOverviewPage() {
                         ? 'text-slate-500 dark:text-slate-400'
                         : 'text-slate-300 dark:text-slate-600'
                       }`}>
-                      {/* Tampilkan semua label kalau <= 10 bar, kalau lebih hanya tiap 2 */}
                       {chartBars.length <= 10 || i % 2 === 0 || i === chartBars.length - 1 ? bar.label : ''}
                     </span>
                   </div>
@@ -492,7 +533,7 @@ export default function DashboardOverviewPage() {
         </div>
       </div>
 
-      {/* Row 3 + 4: 6 widgets dalam 1 grid */}
+      {/* Row 3 + 4: 6 widgets */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
 
         {/* Transaksi Terbaru */}
@@ -718,7 +759,7 @@ export default function DashboardOverviewPage() {
         </div>
 
       </div>
-
+      <ImportPDFModal open={importModalOpen} onClose={() => setImportModalOpen(false)} />
       <SyncNotification
         state={syncState}
         newTransactions={newTransactions}
