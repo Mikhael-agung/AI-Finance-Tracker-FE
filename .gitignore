@@ -45,6 +45,7 @@ logs
 # dotenv environment variable files
 .env.local
 .env
+.env.prodaction
 
 # VSCode
 .vscode/*
