@@ -38,18 +38,6 @@ reviews:
       - "wip"
       - "draft"
 
-  labels:
-    - label: "bug"
-      keywords: ["fix", "bugfix", "hotfix"]
-    - label: "feature"
-      keywords: ["feat", "feature", "add"]
-    - label: "refactor"
-      keywords: ["refactor", "cleanup", "chore"]
-    - label: "security"
-      keywords: ["security", "auth", "xss", "csrf"]
-    - label: "performance"
-      keywords: ["perf", "optimize", "cache"]
-
   path_instructions:
     # ==================== NEXT.JS APP ROUTER ====================
     - path: "app/**/*.tsx"
