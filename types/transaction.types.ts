@@ -11,7 +11,6 @@ export interface Transaction {
   updated_at: string;
   payment_method?: string;
   notes?: string;
-  payment_method?: string;
   tags?: string[];
   is_recurring?: boolean;
   recurring_interval?: string;
