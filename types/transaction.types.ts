@@ -17,18 +17,3 @@ export interface Transaction {
   status: 'pending' | 'completed' | 'cancelled';
   metadata?: Record<string, any>;
 }
-
-export interface TransactionFilters {
-  wallet_id?: string;
-  type?: 'income' | 'expense' | 'transfer';
-  category?: string;
-  start_date?: string;
-  end_date?: string;
-  min_amount?: number;
-  max_amount?: number;
-  search?: string;
-  page?: number;
-  limit?: number;
-  sort_by?: string;
-  sort_order?: 'asc' | 'desc';
-}
