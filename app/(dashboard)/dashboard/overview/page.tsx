@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
@@ -13,10 +13,11 @@ import { useRouter } from 'next/navigation';
 import { format, subDays, startOfMonth, eachDayOfInterval, eachWeekOfInterval, endOfWeek, parseISO } from 'date-fns';
 import { id } from 'date-fns/locale';
 import type { DateRange } from 'react-day-picker';
+import { ImportPDFModal } from '@/components/transactions/ImportPDFModal';
 import {
   RefreshCcw, Plus, TrendingUp, TrendingDown, CheckCircle2,
   Mail, AlertTriangle, Car, ShoppingBag, UtensilsCrossed,
-  Wallet, CalendarIcon, ReceiptText,
+  Wallet, CalendarIcon, ReceiptText, Pencil, FileUp, ChevronDown,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { formatCurrency } from '@/lib/utils/formatters';
@@ -58,22 +59,10 @@ function getCategoryIcon(category: string) {
   return CATEGORY_ICONS.default;
 }
 
-// function getInitialDateRange(): DateRange {
-//   if (typeof window !== 'undefined') {
-//     const saved = localStorage.getItem('dashboard_preset');
-//     if (saved) {
-//       const days = parseInt(saved);
-//       if (days === -1) return { from: startOfMonth(new Date()), to: new Date() };
-//       return { from: subDays(new Date(), days), to: new Date() };
-//     }
-//   }
-//   return { from: startOfMonth(new Date()), to: new Date() };
-// }
-
 function buildChartData(transactions: Transaction[], dateRange: DateRange): ChartBar[] {
   if (!dateRange.from || !dateRange.to) return [];
   const diffDays = Math.ceil((dateRange.to.getTime() - dateRange.from.getTime()) / (1000 * 60 * 60 * 24));
-  const groupByWeek = diffDays > 60; // ← fix: dari 14 jadi 60
+  const groupByWeek = diffDays > 60;
   let buckets: { label: string; from: Date; to: Date }[] = [];
   if (groupByWeek) {
     const weeks = eachWeekOfInterval({ start: dateRange.from, end: dateRange.to }, { weekStartsOn: 1 });
@@ -132,6 +121,7 @@ const CustomTooltip = ({ active, payload }: any) => {
 
 export default function DashboardOverviewPage() {
   const router = useRouter();
+  const [importModalOpen, setImportModalOpen] = useState(false);
   const [data, setData] = useState<DashboardData>({
     totalBalance: 0, totalIncome: 0, totalExpenses: 0, netFlow: 0,
     walletCount: 0, totalTransactions: 0,
@@ -147,11 +137,23 @@ export default function DashboardOverviewPage() {
     from: startOfMonth(new Date()),
     to: new Date(),
   });
+  const [addMenuOpen, setAddMenuOpen] = useState(false);
+  const addMenuRef = useRef<HTMLDivElement>(null);
 
   const [syncState, setSyncState] = useState<SyncState>('idle');
   const [newTransactions, setNewTransactions] = useState(0);
   const [syncsUsed, setSyncsUsed] = useState(0);
   const MAX_SYNCS = 5;
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (addMenuRef.current && !addMenuRef.current.contains(e.target as Node)) {
+        setAddMenuOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const loadChartData = useCallback(async (range: DateRange) => {
     if (!range.from || !range.to) return;
@@ -232,24 +234,22 @@ export default function DashboardOverviewPage() {
   const handleDateRangeSelect = (range: DateRange | undefined) => {
     if (!range) return;
     setDateRange(range);
-    // Kalender custom — tidak simpan ke localStorage
     if (range.from && range.to) { setCalendarOpen(false); loadChartData(range); }
   };
 
   const setPreset = (days: number) => {
-    localStorage.setItem('dashboard_preset', String(days)); // ← simpan preset
+    localStorage.setItem('dashboard_preset', String(days));
     const range = { from: subDays(new Date(), days), to: new Date() };
     setDateRange(range); setCalendarOpen(false); loadChartData(range);
   };
 
   const setPresetMonth = () => {
-    localStorage.setItem('dashboard_preset', '-1'); // ← simpan preset bulan ini
+    localStorage.setItem('dashboard_preset', '-1');
     const range = { from: startOfMonth(new Date()), to: new Date() };
     setDateRange(range); setCalendarOpen(false); loadChartData(range);
   };
 
   useEffect(() => {
-    // Load preset dari localStorage setelah mount (client only)
     const saved = localStorage.getItem('dashboard_preset');
     if (saved) {
       const days = parseInt(saved);
@@ -281,7 +281,7 @@ export default function DashboardOverviewPage() {
       <GmailTokenBanner />
 
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-start justify-between gap-2">
         <div>
           <h2 className="text-2xl font-bold text-slate-900 dark:text-white">Halo! 👋</h2>
           <p className="text-sm text-slate-500 font-medium flex items-center gap-1.5 mt-0.5">
@@ -289,11 +289,51 @@ export default function DashboardOverviewPage() {
             {lastSynced ? `Terakhir sinkronisasi: ${formatLastSynced(lastSynced)}` : 'Belum pernah sinkronisasi'}
           </p>
         </div>
-        <div className="flex items-center gap-3">
-          <Button onClick={() => router.push('/transactions/new')}
-            className="bg-sky-500 hover:bg-sky-500/90 text-white font-bold gap-2 rounded-xl shadow-md">
-            <Plus className="h-4 w-4" /> Tambah Transaksi
-          </Button>
+
+        {/* Tombol stack vertical di mobile, horizontal di desktop */}
+        <div className="flex flex-col sm:flex-row items-end sm:items-center gap-2 shrink-0">
+          <div className="relative" ref={addMenuRef}>
+            <Button
+              onClick={() => setAddMenuOpen((prev) => !prev)}
+              className="bg-sky-500 hover:bg-sky-500/90 text-white font-bold gap-2 rounded-xl shadow-md"
+            >
+              <Plus className="h-4 w-4" />
+              Tambah Transaksi
+              <ChevronDown className={`h-3.5 w-3.5 transition-transform duration-200 ${addMenuOpen ? 'rotate-180' : ''}`} />
+            </Button>
+
+            {addMenuOpen && (
+              <div className="absolute top-full right-0 mt-2 w-72 bg-white dark:bg-gray-900 border border-slate-200 dark:border-gray-700 rounded-2xl shadow-2xl z-50 overflow-hidden">
+                <div className="p-2 space-y-1">
+                  <button
+                    onClick={() => { setAddMenuOpen(false); router.push('/transactions/new'); }}
+                    className="w-full flex items-start gap-3 p-3 rounded-xl hover:bg-slate-50 dark:hover:bg-gray-800 transition-colors group text-left"
+                  >
+                    <div className="w-10 h-10 rounded-lg bg-blue-500/10 flex items-center justify-center shrink-0 group-hover:bg-blue-500/20 transition-colors">
+                      <Pencil className="h-5 w-5 text-blue-500" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-bold text-slate-900 dark:text-white">Input Manual</p>
+                      <p className="text-[11px] text-slate-400 mt-0.5">Tambah transaksi secara manual</p>
+                    </div>
+                  </button>
+                  <button
+                    onClick={() => { setAddMenuOpen(false); setImportModalOpen(true); }}
+                    className="w-full flex items-start gap-3 p-3 rounded-xl hover:bg-slate-50 dark:hover:bg-gray-800 transition-colors group text-left"
+                  >
+                    <div className="w-10 h-10 rounded-lg bg-emerald-500/10 flex items-center justify-center shrink-0 group-hover:bg-emerald-500/20 transition-colors">
+                      <FileUp className="h-5 w-5 text-emerald-500" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-bold text-slate-900 dark:text-white">Import Mutasi Bank</p>
+                      <p className="text-[11px] text-slate-400 mt-0.5">Upload PDF dari BCA, BNI Wondr, atau BNI Mobile</p>
+                    </div>
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+
           <Button onClick={handleSync} disabled={syncing}
             className="bg-[#0da2e7] hover:bg-[#0da2e7]/90 text-white font-bold gap-2 rounded-xl shadow-md">
             <RefreshCcw className={`h-4 w-4 ${syncing ? 'animate-spin' : ''}`} />
@@ -302,47 +342,47 @@ export default function DashboardOverviewPage() {
         </div>
       </div>
 
-      {/* Row 1: Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <div className="bg-white dark:bg-gray-900 p-6 rounded-xl border border-slate-200 dark:border-gray-800 shadow-sm">
-          <p className="text-sm text-slate-500 font-semibold mb-1">Total Saldo</p>
-          {loading ? <div className="h-8 w-36 bg-slate-100 animate-pulse rounded mb-2" /> : (
-            <h3 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">{formatCurrency(data.totalBalance)}</h3>
+      {/* Row 1: Stats Cards — 2 col mobile, 4 col desktop */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-6">
+        <div className="bg-white dark:bg-gray-900 p-4 md:p-6 rounded-xl border border-slate-200 dark:border-gray-800 shadow-sm">
+          <p className="text-xs md:text-sm text-slate-500 font-semibold mb-1">Total Saldo</p>
+          {loading ? <div className="h-7 w-20 bg-slate-100 animate-pulse rounded mb-2" /> : (
+            <h3 className="text-base md:text-2xl font-bold text-slate-900 dark:text-white mb-2">{formatCurrency(data.totalBalance)}</h3>
           )}
-          <div className="flex items-center gap-1.5 text-emerald-500 text-sm font-bold">
-            <TrendingUp className="h-4 w-4" /><span>{data.walletCount} dompet aktif</span>
+          <div className="flex items-center gap-1 text-emerald-500 text-xs font-bold">
+            <TrendingUp className="h-3 w-3" /><span>{data.walletCount} dompet aktif</span>
           </div>
         </div>
-        <div className="bg-white dark:bg-gray-900 p-6 rounded-xl border border-slate-200 dark:border-gray-800 shadow-sm">
-          <p className="text-sm text-slate-500 font-semibold mb-1">Pemasukan (Bulan ini)</p>
-          {loading ? <div className="h-8 w-36 bg-slate-100 animate-pulse rounded mb-2" /> : (
-            <h3 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">{formatCurrency(data.totalIncome)}</h3>
+        <div className="bg-white dark:bg-gray-900 p-4 md:p-6 rounded-xl border border-slate-200 dark:border-gray-800 shadow-sm">
+          <p className="text-xs md:text-sm text-slate-500 font-semibold mb-1">Pemasukan</p>
+          {loading ? <div className="h-7 w-20 bg-slate-100 animate-pulse rounded mb-2" /> : (
+            <h3 className="text-base md:text-2xl font-bold text-slate-900 dark:text-white mb-2">{formatCurrency(data.totalIncome)}</h3>
           )}
-          <div className="flex items-center gap-1.5 text-emerald-500 text-sm font-bold">
-            <TrendingUp className="h-4 w-4" /><span>Bulan ini</span>
+          <div className="flex items-center gap-1 text-emerald-500 text-xs font-bold">
+            <TrendingUp className="h-3 w-3" /><span>Bulan ini</span>
           </div>
         </div>
-        <div className="bg-white dark:bg-gray-900 p-6 rounded-xl border border-slate-200 dark:border-gray-800 shadow-sm">
-          <p className="text-sm text-slate-500 font-semibold mb-1">Pengeluaran (Bulan ini)</p>
-          {loading ? <div className="h-8 w-36 bg-slate-100 animate-pulse rounded mb-2" /> : (
-            <h3 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">{formatCurrency(data.totalExpenses)}</h3>
+        <div className="bg-white dark:bg-gray-900 p-4 md:p-6 rounded-xl border border-slate-200 dark:border-gray-800 shadow-sm">
+          <p className="text-xs md:text-sm text-slate-500 font-semibold mb-1">Pengeluaran</p>
+          {loading ? <div className="h-7 w-20 bg-slate-100 animate-pulse rounded mb-2" /> : (
+            <h3 className="text-base md:text-2xl font-bold text-slate-900 dark:text-white mb-2">{formatCurrency(data.totalExpenses)}</h3>
           )}
-          <div className="flex items-center gap-1.5 text-rose-500 text-sm font-bold">
-            <TrendingDown className="h-4 w-4" /><span>Bulan ini</span>
+          <div className="flex items-center gap-1 text-rose-500 text-xs font-bold">
+            <TrendingDown className="h-3 w-3" /><span>Bulan ini</span>
           </div>
         </div>
-        <div className="bg-white dark:bg-gray-900 p-6 rounded-xl border border-slate-200 dark:border-gray-800 shadow-sm">
-          <p className="text-sm text-slate-500 font-semibold mb-1">Tabungan</p>
-          {loading ? <div className="h-8 w-36 bg-slate-100 animate-pulse rounded mb-2" /> : (
-            <h3 className="text-2xl font-bold text-slate-900 dark:text-white mb-2">{formatCurrency(Math.max(0, savings))}</h3>
+        <div className="bg-white dark:bg-gray-900 p-4 md:p-6 rounded-xl border border-slate-200 dark:border-gray-800 shadow-sm">
+          <p className="text-xs md:text-sm text-slate-500 font-semibold mb-1">Tabungan</p>
+          {loading ? <div className="h-7 w-20 bg-slate-100 animate-pulse rounded mb-2" /> : (
+            <h3 className="text-base md:text-2xl font-bold text-slate-900 dark:text-white mb-2">{formatCurrency(Math.max(0, savings))}</h3>
           )}
-          <div className="flex items-center gap-1.5 text-[#0da2e7] text-sm font-bold">
-            <TrendingUp className="h-4 w-4" /><span>{savingsPercent}% dari pemasukan</span>
+          <div className="flex items-center gap-1 text-[#0da2e7] text-xs font-bold">
+            <TrendingUp className="h-3 w-3" /><span>{savingsPercent}% dari pemasukan</span>
           </div>
         </div>
       </div>
 
-      {/* Row 2: Chart (3 col) + Gmail Sync (1 col) */}
+      {/* Row 2: Chart + Gmail Sync */}
       <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6">
         <div className="md:col-span-2 lg:col-span-3 bg-white dark:bg-gray-900 p-6 rounded-xl border border-slate-200 dark:border-gray-800 shadow-sm">
           <div className="flex items-center justify-between mb-4">
@@ -375,9 +415,7 @@ export default function DashboardOverviewPage() {
                             const today = new Date();
                             const range = { from: today, to: today };
                             setDateRange(range); setCalendarOpen(false); loadChartData(range);
-                          } else {
-                            setPreset(days);
-                          }
+                          } else { setPreset(days); }
                         }} className="px-2.5 py-1 text-xs font-bold rounded-lg bg-slate-100 dark:bg-gray-700 text-slate-600 dark:text-slate-300 hover:bg-[#0da2e7]/10 hover:text-[#0da2e7] transition-all">{label}</button>
                       ))}
                       <button onClick={setPresetMonth}
@@ -404,47 +442,30 @@ export default function DashboardOverviewPage() {
             </div>
           ) : (
             <>
-              {/* Chart bars — tinggi diperbesar biar nominal di atas muat */}
               <div className="h-44 w-full bg-slate-50 dark:bg-gray-800 rounded-lg flex items-end px-3 pb-2 gap-1 overflow-x-auto">
                 {chartBars.map((bar, i) => (
                   <div key={i} className="flex-1 min-w-6 flex flex-col justify-end items-center relative" style={{ height: '100%' }}>
-                    {/* Nominal - langsung tanpa wrapper div */}
                     {bar.expense > 0 && (
-                      <span
-                        className="absolute text-[8px] font-bold text-slate-400 dark:text-slate-400 whitespace-nowrap pointer-events-none z-10"
-                        style={{
-                          bottom: `calc(${bar.height}px + 4px)`,
-                          left: '50%',
-                          transform: 'translateX(-50%) rotate(-45deg)',
-                          transformOrigin: 'bottom left',
-                        }}>
-                        {bar.expense >= 1000000
-                          ? `${(bar.expense / 1000000).toFixed(1)}jt`
-                          : bar.expense >= 1000
-                            ? `${(bar.expense / 1000).toFixed(0)}rb`
-                            : `${bar.expense}`}
+                      <span className="absolute text-[8px] font-bold text-slate-400 whitespace-nowrap pointer-events-none z-10"
+                        style={{ bottom: `calc(${bar.height}px + 4px)`, left: '50%', transform: 'translateX(-50%) rotate(-45deg)', transformOrigin: 'bottom left' }}>
+                        {bar.expense >= 1000000 ? `${(bar.expense / 1000000).toFixed(1)}jt` : bar.expense >= 1000 ? `${(bar.expense / 1000).toFixed(0)}rb` : `${bar.expense}`}
                       </span>
                     )}
                     <div className="w-full rounded-t-md transition-all duration-500 cursor-pointer hover:opacity-80"
-                      style={{
-                        height: bar.expense > 0 ? `${bar.height}px` : '4px',
-                        background: i === chartBars.length - 1 ? '#0da2e7' : `rgba(13,162,231,${0.25 + (i / chartBars.length) * 0.6})`
-                      }} />
+                      style={{ height: bar.expense > 0 ? `${bar.height}px` : '4px', background: i === chartBars.length - 1 ? '#0da2e7' : `rgba(13,162,231,${0.25 + (i / chartBars.length) * 0.6})` }} />
                   </div>
                 ))}
               </div>
-
-              {/* Labels simetris — setiap bar punya label */}
-              <div className="flex mt-2 px-3 gap-1">
+              {/* Labels */}
+              <div className="flex mt-1 px-3 gap-1 overflow-x-hidden">
                 {chartBars.map((bar, i) => (
-                  <div key={i} className="flex-1 min-w-6 text-center">
-                    <span className={`text-[9px] font-medium ${i === chartBars.length - 1
-                      ? 'text-[#0da2e7] font-bold'
-                      : bar.expense > 0
-                        ? 'text-slate-500 dark:text-slate-400'
-                        : 'text-slate-300 dark:text-slate-600'
+                  <div key={i} className="flex-1 min-w-6 text-center overflow-hidden">
+                    <span className={`text-[9px] font-medium block truncate ${i === chartBars.length - 1
+                        ? 'text-[#0da2e7] font-bold'
+                        : bar.expense > 0
+                          ? 'text-slate-500 dark:text-slate-400'
+                          : 'text-slate-300 dark:text-slate-600'
                       }`}>
-                      {/* Tampilkan semua label kalau <= 10 bar, kalau lebih hanya tiap 2 */}
                       {chartBars.length <= 10 || i % 2 === 0 || i === chartBars.length - 1 ? bar.label : ''}
                     </span>
                   </div>
@@ -492,7 +513,7 @@ export default function DashboardOverviewPage() {
         </div>
       </div>
 
-      {/* Row 3 + 4: 6 widgets dalam 1 grid */}
+      {/* Row 3 + 4: 6 widgets */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
 
         {/* Transaksi Terbaru */}
@@ -698,7 +719,7 @@ export default function DashboardOverviewPage() {
                 return (
                   <div key={tx.id} className="p-3 bg-slate-50 dark:bg-gray-800 rounded-xl flex items-center justify-between">
                     <div className="min-w-0">
-                      <p className="text-xs font-bold text-slate-900 dark:text-white truncate max-w-[140px]">{tx.description}</p>
+                      <p className="text-xs font-bold text-slate-900 dark:text-white truncate max-w-35">{tx.description}</p>
                       <p className="text-[10px] text-slate-500 font-medium">
                         {new Date(tx.transaction_date).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })} • {formatCurrency(Math.abs(tx.amount))}
                       </p>
@@ -719,6 +740,7 @@ export default function DashboardOverviewPage() {
 
       </div>
 
+      <ImportPDFModal open={importModalOpen} onClose={() => setImportModalOpen(false)} />
       <SyncNotification
         state={syncState}
         newTransactions={newTransactions}
