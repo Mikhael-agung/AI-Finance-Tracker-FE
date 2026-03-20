@@ -84,6 +84,12 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(redirectUrl)
   }
 
+  if (user && pathname === '/dashboard') {
+    const redirectUrl = request.nextUrl.clone()
+    redirectUrl.pathname = '/dashboard/overview'
+    return NextResponse.redirect(redirectUrl)
+  }
+
   return supabaseResponse
 }
 
