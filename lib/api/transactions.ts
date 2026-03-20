@@ -1,6 +1,7 @@
 // lib/api/transactions.ts
 import { api } from './client';
-import { Transaction, TransactionFilters } from '@/types/transaction.types';
+import { Transaction } from '@/types/transaction.types';
+import { TransactionFilters } from '@/types/api.types';
 
 export interface TransactionListResponse {
   transactions: Transaction[];

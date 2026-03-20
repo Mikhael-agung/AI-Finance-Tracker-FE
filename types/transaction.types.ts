@@ -9,6 +9,7 @@ export interface Transaction {
   transaction_date: string;
   created_at: string;
   updated_at: string;
+  payment_method?: string;
   notes?: string;
   payment_method?: string;
   tags?: string[];
