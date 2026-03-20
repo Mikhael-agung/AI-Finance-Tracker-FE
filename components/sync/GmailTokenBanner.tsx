@@ -37,8 +37,17 @@ export function GmailTokenBanner() {
         sessionStorage.setItem('gmail_banner_dismissed', 'true');
     };
 
-    const handleReconnect = () => {
-        router.push('/login?reconnect=true');
+    const handleReconnect = async () => {
+        try {
+            const result = await api.get<any>('/auth/connect-gmail', { redirectUrl: `${window.location.origin}/api/auth/google/callback`}); 
+
+            if(result?.data?.url) {
+                window.location.href = result.data.url;
+            }
+            
+        } catch {
+            router.push('/sync/settings'); // fallback ke sync settings kalau ada error saat request URL reconnect
+        }
     };
 
     if (!show || dismissed) return null;

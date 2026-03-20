@@ -31,8 +31,10 @@ function SidebarContent() {
     <div className="flex flex-col grow border-r border-gray-200 dark:border-gray-800 pt-5 bg-white dark:bg-gray-900 overflow-y-auto h-full">
       <div className="flex items-center shrink-0 px-4">
         <div className="flex items-center gap-2">
-          <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
-            <Wallet className="h-5 w-5 text-white" />
+          <div className="w-8 h-8 bg-white rounded-lg flex items-center justify-center shadow-lg border-2 border-primary">
+            <span className="text-primary font-bold italic text-sm" style={{ fontFamily: 'Georgia, serif' }}>
+              FF
+            </span>
           </div>
           <span className="text-xl font-bold text-gray-900 dark:text-white">
             FinanceFlow

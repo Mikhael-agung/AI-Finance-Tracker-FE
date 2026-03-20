@@ -1,11 +1,11 @@
 # yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
-# .coderabbit.yaml - Finance Tracker Frontend
+# .coderabbit.yaml - FinanceFlow Frontend
 # CodeRabbit Configuration for Next.js 15 + TypeScript + Supabase
 
 language: "en-US"
 
 tone_instructions: |
-  Berikan review dalam Bahasa Indonesia yang jelas, konstruktif, dan mudah dipahami. 
+  Berikan review dalam Bahasa Indonesia yang jelas, konstruktif, dan mudah dipahami.
   Gunakan istilah teknis yang umum digunakan developer Indonesia.
   Fokus pada solusi praktis, bukan hanya menunjukkan masalah.
 
@@ -19,43 +19,52 @@ reviews:
   poem: false
   review_status: true
   collapse_walkthrough: false
-  
+
+  path_filters:
+    - "!**/node_modules/**"
+    - "!**/.next/**"
+    - "!**/logs/**"
+    - "!**/*.lock"
+    - "!**/migrations/**"
+    - "!**/.coderabbit*"
+
   auto_review:
     enabled: true
+    drafts: false
     ignore_title_keywords:
       - "WIP"
       - "Draft"
       - "DO NOT MERGE"
       - "wip"
       - "draft"
-    drafts: false
 
   path_instructions:
     # ==================== NEXT.JS APP ROUTER ====================
     - path: "app/**/*.tsx"
       instructions: |
         Review Next.js App Router components dalam Bahasa Indonesia:
-        
+
         PERFORMANCE:
         - Cek apakah component sudah optimal pake 'use client' vs Server Component
         - Identifikasi operasi async yang bisa di-parallel dengan Promise.all()
         - Pastikan image optimization pake next/image dengan proper sizing
         - Cek apakah ada unnecessary re-render (missing memo, useMemo, useCallback)
         - Flagging fetch calls yang gak pake caching strategy
-        
+
         NEXT.JS 15 BEST PRACTICES:
         - Pastikan metadata export HANYA di Server Components (bukan di 'use client')
         - Cek async Server Components sudah handle loading/error state
         - Validate route handlers return proper Response objects
         - Pastikan dynamic routes pake proper params typing
         - Cek penggunaan headers(), cookies() cuma di Server Components
-        
+        - Jangan pass Lucide icons atau functions sebagai props dari Server ke Client Component
+
         REACT PATTERNS:
         - Identifikasi useState yang bisa diganti ke useReducer (complex state)
         - Cek dependency arrays di useEffect, useMemo, useCallback
         - Pastikan event handlers gak leak memory (cleanup di useEffect)
         - Validate error boundaries untuk graceful error handling
-        
+
         KEAMANAN:
         - Pastikan user input di-sanitize sebelum render (XSS prevention)
         - Cek apakah ada sensitive data di client component (API keys, tokens)
@@ -66,53 +75,52 @@ reviews:
     - path: "lib/api/**/*.ts"
       instructions: |
         Review API client code dalam Bahasa Indonesia:
-        
+
         OPTIMALISASI:
         - Cek apakah API calls bisa di-batch untuk reduce network requests
         - Identifikasi duplicate fetch calls yang bisa di-cache
         - Pastikan error handling dan retry logic sudah proper
         - Validate timeout configuration untuk prevent hanging requests
-        
+
         KEAMANAN:
         - Pastikan authorization headers (Bearer token) always included
         - Cek apakah ada API keys atau secrets di client-side code
         - Validate response data sebelum digunakan (type safety)
         - Pastikan error messages gak expose sensitive backend info
-        
+
         TYPE SAFETY:
         - Cek return types dari API functions sudah proper
         - Validate request/response interfaces match backend contract
         - Pastikan error types di-handle dengan proper typing
-        
+
         BEST PRACTICES:
         - Consistent error handling across all API calls
         - Proper loading states untuk UX
         - Request cancellation untuk prevent race conditions
-        - Proper use of React Query/SWR if applicable
 
     # ==================== COMPONENTS ====================
     - path: "components/**/*.tsx"
       instructions: |
         Review React components dalam Bahasa Indonesia:
-        
+
         COMPONENT DESIGN:
         - Cek apakah component terlalu besar dan perlu di-split
         - Validate props interface dan default values
         - Pastikan component reusable dan composable
         - Cek apakah ada prop drilling yang bisa dihindari dengan context/state management
-        
+
         PERFORMANCE:
         - Identifikasi expensive computations yang perlu useMemo
         - Cek callback functions yang perlu useCallback
         - Validate list rendering pake proper key (bukan index)
         - Pastikan conditional rendering optimal (&&, ternary, early return)
-        
+
         ACCESSIBILITY:
         - Cek semantic HTML usage (button vs div, a vs button)
         - Validate ARIA labels untuk screen readers
         - Pastikan keyboard navigation works properly
         - Cek color contrast untuk users dengan visual impairment
-        
+
         STYLING:
         - Validate Tailwind class usage (gak ada duplicate/conflict)
         - Cek responsive design di mobile, tablet, desktop
@@ -123,18 +131,18 @@ reviews:
     - path: "lib/store/**/*.ts"
       instructions: |
         Review state management code dalam Bahasa Indonesia:
-        
-        ZUSTAND/STATE PATTERNS:
+
+        ZUSTAND PATTERNS:
         - Cek apakah state structure normalized dan scalable
         - Validate selectors untuk prevent unnecessary re-renders
         - Pastikan actions pure dan gak mutate state directly
         - Cek apakah ada derived state yang bisa dicompute on-the-fly
-        
+
         PERFORMANCE:
         - Identifikasi state updates yang trigger banyak re-renders
         - Validate shallow comparison di selectors
         - Cek apakah bisa pake state slicing untuk optimize
-        
+
         TYPE SAFETY:
         - Pastikan store types properly defined
         - Validate action return types
@@ -144,18 +152,18 @@ reviews:
     - path: "lib/hooks/**/*.ts"
       instructions: |
         Review custom hooks dalam Bahasa Indonesia:
-        
+
         HOOK PATTERNS:
         - Validate naming convention (harus prefix 'use')
         - Cek apakah hook composition makes sense
         - Pastikan gak ada Rules of Hooks violations
         - Validate dependency arrays lengkap dan correct
-        
+
         PERFORMANCE:
         - Cek apakah hook trigger too many re-renders
         - Identify opportunities untuk debounce/throttle
         - Validate cleanup di useEffect
-        
+
         REUSABILITY:
         - Cek apakah hook terlalu specific atau bisa di-generalize
         - Validate type parameters untuk generic hooks
@@ -165,18 +173,18 @@ reviews:
     - path: "types/**/*.ts"
       instructions: |
         Review TypeScript types dalam Bahasa Indonesia:
-        
+
         TYPE SAFETY:
         - Validate type definitions match backend API contract
         - Cek penggunaan 'any' type (should be avoided)
         - Pastikan union types dan discriminated unions proper
         - Validate generic types usage dan constraints
-        
-        ZOD/VALIDATION:
+
+        ZOD VALIDATION:
         - Cek Zod schemas match TypeScript types (use z.infer)
         - Validate schema transformations dan refinements
         - Pastikan error messages user-friendly
-        
+
         CONSISTENCY:
         - Cek naming conventions (PascalCase untuk types)
         - Validate type exports organized dan discoverable
@@ -185,49 +193,71 @@ reviews:
     - path: "lib/supabase/**/*.ts"
       instructions: |
         Review Supabase integration dalam Bahasa Indonesia:
-        
+
         CLIENT CONFIGURATION:
         - Pastikan browser client vs server client usage correct
         - Validate environment variables properly configured
         - Cek auth state management dan persistence
-        
-        KEAMANAN:
-        - CRITICAL: Pastikan SUPABASE_ANON_KEY digunakan, BUKAN SERVICE_ROLE_KEY
+
+        KEAMANAN — CRITICAL:
+        - PASTIKAN SUPABASE_ANON_KEY digunakan di client, BUKAN SERVICE_ROLE_KEY
         - Validate RLS policies understood dan followed
         - Cek auth checks di middleware dan route handlers
         - Pastikan session validation proper
-        
+
         QUERIES:
         - Validate query filters dan pagination
         - Cek error handling dari Supabase responses
-        - Pastikan type safety di Supabase queries (use generated types)
+        - Pastikan type safety di Supabase queries
         - Identify N+1 query problems
 
     # ==================== MIDDLEWARE ====================
     - path: "middleware.ts"
       instructions: |
         Review Next.js middleware dalam Bahasa Indonesia:
-        
+
         ROUTING:
         - Validate matcher patterns correct
         - Cek redirect logic untuk auth protection
         - Pastikan public routes properly excluded
-        
+
         PERFORMANCE:
-        - Middleware harus cepat (< 50ms ideally)
+        - Middleware harus cepat (idealnya < 50ms)
         - Avoid heavy operations di middleware
         - Cek apakah bisa cache auth checks
-        
+
         KEAMANAN:
         - Validate auth token verification
         - Cek CSRF protection kalau applicable
         - Pastikan rate limiting di critical routes
 
+    # ==================== VALIDATION SCHEMAS ====================
+    - path: "lib/validation/**/*.ts"
+      instructions: |
+        Review form validation schemas dalam Bahasa Indonesia:
+
+        - Validate Zod schemas comprehensive (semua edge cases)
+        - Cek error messages user-friendly dan localized
+        - Pastikan validasi di client DAN server
+        - Review schema composition dan reusability
+        - Cek apakah ada field yang harusnya required tapi optional
+
+    # ==================== UTILITIES ====================
+    - path: "lib/utils/**/*.ts"
+      instructions: |
+        Review utility functions dalam Bahasa Indonesia:
+
+        - Validate pure functions (no side effects)
+        - Cek edge cases dan error handling
+        - Pastikan proper TypeScript typing
+        - Review performance implications
+        - Cek apakah perlu unit tests
+
     # ==================== CONFIGURATION ====================
     - path: "next.config.js"
       instructions: |
         Review Next.js config dalam Bahasa Indonesia:
-        
+
         - Validate image domains properly configured
         - Cek environment variable exposure (NEXT_PUBLIC_*)
         - Pastikan redirects dan rewrites correct
@@ -238,38 +268,27 @@ reviews:
     - path: ".env*"
       instructions: |
         Review environment configuration dalam Bahasa Indonesia:
-        
-        KEAMANAN - CRITICAL:
+
+        KEAMANAN — CRITICAL:
         - PASTIKAN file .env di .gitignore (NEVER commit secrets)
         - Validate ONLY NEXT_PUBLIC_* vars exposed to client
         - Cek format environment variables (URLs, keys)
         - Pastikan .env.example up-to-date untuk onboarding
-        
+
         SECRET MANAGEMENT:
         - Backend API keys (SUPABASE_SERVICE_ROLE_KEY) NEVER di frontend
         - Validate production secrets different dari development
         - Cek rotation strategy untuk sensitive keys
 
-    # ==================== FORMS & VALIDATION ====================
-    - path: "lib/validation/**/*.ts"
+    # ==================== STYLES ====================
+    - path: "styles/**/*.css"
       instructions: |
-        Review form validation schemas dalam Bahasa Indonesia:
-        
-        - Validate Zod schemas comprehensive (all edge cases)
-        - Cek error messages user-friendly dan localized
-        - Pastikan validation di client DAN server
-        - Review schema composition dan reusability
+        Review CSS dalam Bahasa Indonesia:
 
-    # ==================== UTILITIES ====================
-    - path: "lib/utils/**/*.ts"
-      instructions: |
-        Review utility functions dalam Bahasa Indonesia:
-        
-        - Validate pure functions (no side effects)
-        - Cek edge cases dan error handling
-        - Pastikan proper TypeScript typing
-        - Review performance implications
-        - Cek apakah perlu unit tests
+        - Cek apakah ada style yang conflict dengan Tailwind
+        - Validate CSS variables properly defined
+        - Pastikan tidak ada unused styles
+        - Cek dark mode compatibility
 
 chat:
   auto_reply: true
