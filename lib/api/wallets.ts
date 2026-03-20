@@ -22,8 +22,8 @@ export interface WalletSummary {
 }
 
 export async function fetchWallets(): Promise<Wallet[]> {
-  const { data } = await api.get<Wallet[]>('/wallets');
-  return Array.isArray(data) ? data : [];
+  const raw = await api.get<any>('/wallets');
+  return Array.isArray(raw) ? raw : (raw?.data ?? []);
 }
 
 export async function fetchWalletSummary(): Promise<WalletSummary> {
