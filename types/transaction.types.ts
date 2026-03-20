@@ -9,6 +9,7 @@ export interface Transaction {
   transaction_date: string;
   created_at: string;
   updated_at: string;
+  payment_method?: string;
   notes?: string;
   tags?: string[];
   is_recurring?: boolean;
@@ -16,21 +17,4 @@ export interface Transaction {
   currency: string;
   status: 'pending' | 'completed' | 'cancelled';
   metadata?: Record<string, any>;
-    source?: 'email' | 'manual';        // ← tambah ini
-  payment_method?: string; 
-}
-
-export interface TransactionFilters {
-  wallet_id?: string;
-  type?: 'income' | 'expense' | 'transfer';
-  category?: string;
-  start_date?: string;
-  end_date?: string;
-  min_amount?: number;
-  max_amount?: number;
-  search?: string;
-  page?: number;
-  limit?: number;
-  sort_by?: string;
-  sort_order?: 'asc' | 'desc';
 }

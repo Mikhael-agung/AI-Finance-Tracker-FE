@@ -1,7 +1,8 @@
 import { useState, useCallback } from 'react';
 import { api } from '@/lib/api/client';
 import ENDPOINTS from '@/lib/api/endpoints';
-import { Transaction, TransactionFilters } from '@/types/transaction.types';
+import { Transaction } from '@/types/transaction.types';
+import { TransactionFilters } from '@/types/api.types';
 import { PaginatedResponse } from '@/types/api.types';
 
 export const useTransactions = () => {

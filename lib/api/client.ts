@@ -1,7 +1,7 @@
 // lib/api/client.ts
 import { getSession } from '@/lib/supabase/client';
 
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
 
 export type ApiResponse<T = any> = {
   success: boolean;
@@ -107,7 +107,7 @@ class ApiClient {
         console.error(`API Error [${endpoint}]:`, error.message);
         throw error;
       }
-      throw new Error('Network error occurred');
+      throw new Error("Network error occurred");
     }
   }
 
@@ -132,14 +132,14 @@ class ApiClient {
 
   async put<T>(endpoint: string, data?: any): Promise<FullApiResponse<T>> {
     return this.request<T>(endpoint, {
-      method: 'PUT',
+      method: "PUT",
       body: data ? JSON.stringify(data) : undefined,
     });
   }
 
   async patch<T>(endpoint: string, data?: any): Promise<FullApiResponse<T>> {
     return this.request<T>(endpoint, {
-      method: 'PATCH',
+      method: "PATCH",
       body: data ? JSON.stringify(data) : undefined,
     });
   }
