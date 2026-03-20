@@ -29,13 +29,11 @@ export default function RootLayout({
           precedence="default"
         />
       </head>
-      <body
-        className={`${inter.className} bg-background-light dark:bg-background-dark`}
-      >
+      <body className={`${inter.className} bg-[#F0F9FF] dark:bg-[#0C1A2E]`}>
         <ThemeProvider
           attribute="class"
-          defaultTheme="light"
-          enableSystem={false}
+          defaultTheme="system"
+          enableSystem
           disableTransitionOnChange
         >
           {children}

@@ -10,7 +10,7 @@ import { toast } from "sonner";
 function AuthCallbackContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const redirectTo = searchParams.get("redirect") || "/dashboard";
+  const redirectTo = searchParams.get("redirect") || "/dashboard/overview";
 
   useEffect(() => {
     const handleAuthCallback = async () => {
@@ -34,17 +34,10 @@ function AuthCallbackContent() {
               await syncApi.storeGoogleToken({
                 google_token: session.provider_token,
                 google_refresh_token: session.provider_refresh_token || "",
-                expires_in: session.expires_in,
+                expires_in: 3600, // 1 jam
               });
-
               toast.success("Gmail connected successfully!");
-
-              // Redirect ke sync settings kalo dari connect Gmail
-              if (redirectTo.includes("sync")) {
-                router.push(redirectTo);
-              } else {
-                router.push("/sync/settings?connected=true");
-              }
+              router.push(redirectTo);
             } catch (err: any) {
               toast.error("Gmail connected but token storage failed");
               router.push(redirectTo);
