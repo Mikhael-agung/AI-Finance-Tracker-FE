@@ -1,81 +1,81 @@
-'use client'
+"use client";
 
-import { useState } from 'react'
-import { Button } from '@/components/ui/button'
-import { createBrowserClient } from '@/lib/supabase/client'
-import { syncApi } from '@/lib/api/sync'
-import { toast } from 'sonner'
-import { Mail, Loader2, CheckCircle, XCircle } from 'lucide-react'
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { createBrowserClient } from "@/lib/supabase/client";
+import { syncApi } from "@/lib/api/sync";
+import { toast } from "sonner";
+import { Mail, Loader2, CheckCircle, XCircle } from "lucide-react";
 
 interface GmailConnectProps {
-  onConnected?: () => void
-  isConnected?: boolean
-  email?: string
+  onConnected?: () => void;
+  isConnected?: boolean;
+  email?: string;
 }
 
-export default function GmailConnect({ 
-  onConnected, 
+export default function GmailConnect({
+  onConnected,
   isConnected = false,
-  email 
+  email,
 }: GmailConnectProps) {
-  const [isLoading, setIsLoading] = useState(false)
-  const [isTesting, setIsTesting] = useState(false)
-  const supabase = createBrowserClient()
+  const [isLoading, setIsLoading] = useState(false);
+  const [isTesting, setIsTesting] = useState(false);
+  const supabase = createBrowserClient();
 
   const handleConnect = async () => {
     try {
-      setIsLoading(true)
-      
+      setIsLoading(true);
+
       const { error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
+        provider: "google",
         options: {
           redirectTo: `${window.location.origin}/auth/callback?redirect=/sync/settings`,
           queryParams: {
-            access_type: 'offline',
-            prompt: 'consent',
-            scope: 'email profile https://www.googleapis.com/auth/gmail.readonly'
-          }
-        }
-      })
+            access_type: "offline",
+            prompt: "consent",
+            scope:
+              "email profile https://www.googleapis.com/auth/gmail.readonly",
+          },
+        },
+      });
 
-      if (error) throw error
+      if (error) throw error;
     } catch (error) {
-      console.error('Gmail connect error:', error)
-      toast.error('Failed to connect Gmail. Please try again.')
+      toast.error("Failed to connect Gmail. Please try again.");
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }
+  };
 
   const handleTestConnection = async () => {
     try {
-      setIsTesting(true)
-      const result = await syncApi.testConnection()
-      
+      setIsTesting(true);
+      const result = await syncApi.testConnection();
+
       if (result.success) {
-        toast.success(`Connected as ${result.data.email}`)
+        toast.success(`Connected as ${result.data.email}`);
       } else {
-        toast.error(result.error || 'Connection test failed')
+        toast.error(result.error || "Connection test failed");
       }
     } catch (error: any) {
-      toast.error(error.message || 'Failed to test connection')
+      toast.error(error.message || "Failed to test connection");
     } finally {
-      setIsTesting(false)
+      setIsTesting(false);
     }
-  }
+  };
 
   const handleDisconnect = async () => {
     try {
-      setIsLoading(true)
-      await syncApi.disconnectGmail()
-      toast.success('Gmail disconnected')
-      onConnected?.()
+      setIsLoading(true);
+      await syncApi.disconnectGmail();
+      toast.success("Gmail disconnected");
+      onConnected?.();
     } catch (error) {
-      toast.error('Failed to disconnect')
+      toast.error("Failed to disconnect");
     } finally {
-      setIsLoading(false)
+      setIsLoading(false);
     }
-  }
+  };
 
   if (isConnected) {
     return (
@@ -84,13 +84,11 @@ export default function GmailConnect({
           <CheckCircle className="h-5 w-5" />
           <span className="font-medium">Gmail Connected</span>
         </div>
-        
+
         {email && (
-          <p className="text-sm text-gray-600 dark:text-gray-400">
-            {email}
-          </p>
+          <p className="text-sm text-gray-600 dark:text-gray-400">{email}</p>
         )}
-        
+
         <div className="flex gap-2">
           <Button
             variant="outline"
@@ -101,7 +99,7 @@ export default function GmailConnect({
             {isTesting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
             Test Connection
           </Button>
-          
+
           <Button
             variant="destructive"
             size="sm"
@@ -113,15 +111,11 @@ export default function GmailConnect({
           </Button>
         </div>
       </div>
-    )
+    );
   }
 
   return (
-    <Button
-      onClick={handleConnect}
-      disabled={isLoading}
-      className="w-full"
-    >
+    <Button onClick={handleConnect} disabled={isLoading} className="w-full">
       {isLoading ? (
         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
       ) : (
@@ -129,5 +123,5 @@ export default function GmailConnect({
       )}
       Connect Gmail Account
     </Button>
-  )
+  );
 }

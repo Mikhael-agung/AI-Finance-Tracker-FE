@@ -1,6 +1,6 @@
-import { getSession } from '@/lib/supabase/client';
+import { getSession } from "@/lib/supabase/client";
 
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000/api';
+const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
 
 export type ApiResponse<T = any> = {
   success: boolean;
@@ -20,25 +20,25 @@ export type ApiError = {
 class ApiClient {
   private async request<T>(
     endpoint: string,
-    options: RequestInit = {}
+    options: RequestInit = {},
   ): Promise<T> {
     const session = await getSession();
     const token = session?.access_token;
 
     const headers: HeadersInit = {
-      'Content-Type': 'application/json',
+      "Content-Type": "application/json",
       ...options.headers,
     };
 
     if (token) {
-      (headers as Record<string, string>)['Authorization'] = `Bearer ${token}`;
+      (headers as Record<string, string>)["Authorization"] = `Bearer ${token}`;
     }
 
     const url = `${BASE_URL}${endpoint}`;
     const config: RequestInit = {
       ...options,
       headers,
-      credentials: 'include',
+      credentials: "include",
     };
 
     try {
@@ -48,61 +48,62 @@ class ApiClient {
       if (!response.ok) {
         // Handle 401 - Unauthorized (token expired)
         if (response.status === 401) {
-          // TODO: Implement token refresh logic
-          throw new Error('Session expired. Please login again.');
+          throw new Error("Session expired. Please login again.");
         }
 
         throw new Error(
-          (data as ApiError).error || `Request failed with status ${response.status}`
+          (data as ApiError).error ||
+            `Request failed with status ${response.status}`,
         );
       }
 
       if ((data as ApiResponse<T>).success === false) {
-        throw new Error((data as ApiResponse<T>).error || 'Unknown error');
+        throw new Error((data as ApiResponse<T>).error || "Unknown error");
       }
 
       return (data as ApiResponse<T>).data as T;
     } catch (error) {
       if (error instanceof Error) {
-        console.error(`API Error [${endpoint}]:`, error.message);
         throw error;
       }
-      throw new Error('Network error occurred');
+      throw new Error("Network error occurred");
     }
   }
 
   // CRUD Methods
   async get<T>(endpoint: string, query?: Record<string, any>): Promise<T> {
-    const queryString = query ? `?${new URLSearchParams(query).toString()}` : '';
+    const queryString = query
+      ? `?${new URLSearchParams(query).toString()}`
+      : "";
     return this.request<T>(`${endpoint}${queryString}`, {
-      method: 'GET',
+      method: "GET",
     });
   }
 
   async post<T>(endpoint: string, data?: any): Promise<T> {
     return this.request<T>(endpoint, {
-      method: 'POST',
+      method: "POST",
       body: data ? JSON.stringify(data) : undefined,
     });
   }
 
   async put<T>(endpoint: string, data?: any): Promise<T> {
     return this.request<T>(endpoint, {
-      method: 'PUT',
+      method: "PUT",
       body: data ? JSON.stringify(data) : undefined,
     });
   }
 
   async patch<T>(endpoint: string, data?: any): Promise<T> {
     return this.request<T>(endpoint, {
-      method: 'PATCH',
+      method: "PATCH",
       body: data ? JSON.stringify(data) : undefined,
     });
   }
 
   async delete<T>(endpoint: string): Promise<T> {
     return this.request<T>(endpoint, {
-      method: 'DELETE',
+      method: "DELETE",
     });
   }
 }
