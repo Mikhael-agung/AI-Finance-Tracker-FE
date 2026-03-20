@@ -1,52 +1,58 @@
-'use client'
+"use client";
 
-import { useState, useEffect } from 'react'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import GmailConnect from '@/components/sync/GmailConnect'
-import EmailSyncStatus from '@/components/sync/EmailSyncStatus'
-import SyncHistory from '@/components/sync/SyncHistory'
-import { Button } from '@/components/ui/button'
-import { syncApi } from '@/lib/api/sync'
-import { toast } from 'sonner'
-import { RefreshCw } from 'lucide-react'
+import { useState, useEffect } from "react";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import GmailConnect from "@/components/sync/GmailConnect";
+import EmailSyncStatus from "@/components/sync/EmailSyncStatus";
+import SyncHistory from "@/components/sync/SyncHistory";
+import { Button } from "@/components/ui/button";
+import { syncApi } from "@/lib/api/sync";
+import { toast } from "sonner";
+import { RefreshCw } from "lucide-react";
 
 export default function SyncSettingsPage() {
-  const [isGmailConnected, setIsGmailConnected] = useState(false)
-  const [gmailEmail, setGmailEmail] = useState('')
-  const [isSyncing, setIsSyncing] = useState(false)
-  const [syncStatus, setSyncStatus] = useState<any>(null)
+  const [isGmailConnected, setIsGmailConnected] = useState(false);
+  const [gmailEmail, setGmailEmail] = useState("");
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [syncStatus, setSyncStatus] = useState<any>(null);
 
   useEffect(() => {
-    fetchSyncStatus()
-  }, [])
+    fetchSyncStatus();
+  }, []);
 
   const fetchSyncStatus = async () => {
     try {
-      const result = await syncApi.getSyncStatus()
-      setSyncStatus(result.data)
-      
+      const result = await syncApi.getSyncStatus();
+      setSyncStatus(result.data);
+
       // Cek apakah Gmail connected
       if (result.data?.gmail) {
-        setIsGmailConnected(true)
-        setGmailEmail(result.data.gmail.email)
+        setIsGmailConnected(true);
+        setGmailEmail(result.data.gmail.email);
       }
     } catch (error) {
-      console.error('Failed to fetch sync status:', error)
+      // Failed to fetch sync status
     }
-  }
+  };
 
   const handleManualSync = async () => {
     try {
-      setIsSyncing(true)
-      const result = await syncApi.triggerSync()
-      toast.success(`Sync complete! ${result.data.created} new transactions`)
-      fetchSyncStatus()
+      setIsSyncing(true);
+      const result = await syncApi.triggerSync();
+      toast.success(`Sync complete! ${result.data.created} new transactions`);
+      fetchSyncStatus();
     } catch (error: any) {
-      toast.error(error.message || 'Sync failed')
+      toast.error(error.message || "Sync failed");
     } finally {
-      setIsSyncing(false)
+      setIsSyncing(false);
     }
-  }
+  };
 
   return (
     <div className="container mx-auto py-6 space-y-6">
@@ -57,13 +63,12 @@ export default function SyncSettingsPage() {
             Connect your Gmail account to automatically import bank transactions
           </p>
         </div>
-        
+
         {isGmailConnected && (
-          <Button 
-            onClick={handleManualSync}
-            disabled={isSyncing}
-          >
-            <RefreshCw className={`mr-2 h-4 w-4 ${isSyncing ? 'animate-spin' : ''}`} />
+          <Button onClick={handleManualSync} disabled={isSyncing}>
+            <RefreshCw
+              className={`mr-2 h-4 w-4 ${isSyncing ? "animate-spin" : ""}`}
+            />
             Sync Now
           </Button>
         )}
@@ -77,7 +82,7 @@ export default function SyncSettingsPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <GmailConnect 
+          <GmailConnect
             isConnected={isGmailConnected}
             email={gmailEmail}
             onConnected={fetchSyncStatus}
@@ -92,5 +97,5 @@ export default function SyncSettingsPage() {
         </>
       )}
     </div>
-  )
+  );
 }
