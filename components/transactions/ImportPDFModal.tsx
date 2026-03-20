@@ -30,6 +30,15 @@ interface ImportResult {
     message: string;
 }
 
+interface PreviewResponse {
+    preview: PreviewTransaction[];
+    total_found: number;
+    bank: string;
+    message: string;
+}
+
+interface ImportResponse extends ImportResult {}
+
 const BANK_OPTIONS: { value: BankType; label: string }[] = [
     { value: '', label: '🔍 Auto-detect (Otomatis)' },
     { value: 'BCA', label: 'BCA (myBCA / KlikBCA)' },
@@ -56,6 +65,7 @@ export function ImportPDFModal({ open, onClose }: ImportPDFModalProps) {
     const [previewTotal, setPreviewTotal] = useState(0);
     const [importResult, setImportResult] = useState<ImportResult | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const firstFocusRef = useRef<HTMLButtonElement>(null);
 
     useEffect(() => {
         if (!open) return;
@@ -75,6 +85,9 @@ export function ImportPDFModal({ open, onClose }: ImportPDFModalProps) {
             setPreviewData(null);
             setImportResult(null);
             setIsDragging(false);
+        } else {
+            // Focus trap — fokus ke tombol close saat modal buka
+            setTimeout(() => firstFocusRef.current?.focus(), 50);
         }
     }, [open]);
 
@@ -90,33 +103,38 @@ export function ImportPDFModal({ open, onClose }: ImportPDFModalProps) {
         return () => { document.body.style.overflow = ''; };
     }, [open]);
 
-    const handleFileSelect = (file: File) => {
+    // ✅ Fix: wrap dengan useCallback
+    const handleFileSelect = useCallback((file: File) => {
         if (file.type !== 'application/pdf') { toast.error('Hanya file PDF yang diizinkan'); return; }
         if (file.size > 10 * 1024 * 1024) { toast.error('Ukuran file maksimal 10MB'); return; }
         setSelectedFile(file);
         setPreviewData(null);
         setImportResult(null);
-    };
+    }, []);
 
+    // ✅ Fix: handleFileSelect masuk dependency array
     const handleDrop = useCallback((e: React.DragEvent) => {
         e.preventDefault();
         setIsDragging(false);
         const file = e.dataTransfer.files[0];
         if (file) handleFileSelect(file);
-    }, []);
+    }, [handleFileSelect]);
+
     const handlePreview = async () => {
         if (!selectedFile) { toast.error('Pilih file PDF terlebih dahulu'); return; }
         setPreviewing(true);
         try {
             const formData = new FormData();
             formData.append('file', selectedFile);
-            if (selectedBank) formData.append('bank_type', selectedBank); // ← hanya kalau dipilih manual
-            const result = await api.post<any>('/import/pdf/preview', formData) as any;
-            setPreviewData(result?.preview || result?.data?.preview || []);
-            setPreviewTotal(result?.total_found || result?.data?.total_found || 0);
-            toast.success('Ditemukan ' + (result?.total_found || result?.data?.total_found) + ' transaksi');
-        } catch (err: any) {
-            toast.error(err.message || 'Gagal preview PDF');
+            if (selectedBank) formData.append('bank_type', selectedBank);
+            // ✅ Fix: proper typing
+            const result = await api.post<PreviewResponse>('/import/pdf/preview', formData);
+            const data = (result as unknown as PreviewResponse);
+            setPreviewData(data?.preview || []);
+            setPreviewTotal(data?.total_found || 0);
+            toast.success(`Ditemukan ${data?.total_found || 0} transaksi`);
+        } catch (err: unknown) {
+            toast.error(err instanceof Error ? err.message : 'Gagal preview PDF');
         } finally {
             setPreviewing(false);
         }
@@ -129,17 +147,18 @@ export function ImportPDFModal({ open, onClose }: ImportPDFModalProps) {
             const formData = new FormData();
             formData.append('file', selectedFile);
             formData.append('wallet_id', selectedWallet);
-            if (selectedBank) formData.append('bank_type', selectedBank); // ← hanya kalau dipilih manual
-            const raw = await api.post<any>('/import/pdf', formData) as any;
-            const result = (raw?.bank ? raw : raw?.data) as ImportResult;
-            if (result?.inserted !== undefined) {
-                setImportResult(result);
-                toast.success(`Import berhasil! ${result?.inserted} transaksi ditambahkan`);
+            if (selectedBank) formData.append('bank_type', selectedBank);
+            // ✅ Fix: proper typing
+            const result = await api.post<ImportResponse>('/import/pdf', formData);
+            const data = (result as unknown as ImportResponse);
+            if (data?.inserted !== undefined) {
+                setImportResult(data);
+                toast.success(`Import berhasil! ${data.inserted} transaksi ditambahkan`);
             } else {
                 toast.error('Response tidak valid dari server');
             }
-        } catch (err: any) {
-            toast.error(err.message || 'Import gagal');
+        } catch (err: unknown) {
+            toast.error(err instanceof Error ? err.message : 'Import gagal');
         } finally {
             setImporting(false);
         }
@@ -156,6 +175,9 @@ export function ImportPDFModal({ open, onClose }: ImportPDFModalProps) {
                     className="fixed inset-0 z-[100] flex items-center justify-center p-4"
                     style={{ backgroundColor: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)' }}
                     onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}
+                    role="dialog"
+                    aria-modal="true"
+                    aria-labelledby="import-modal-title"
                 >
                     <motion.div
                         initial={{ opacity: 0, scale: 0.95, y: 20 }}
@@ -167,10 +189,11 @@ export function ImportPDFModal({ open, onClose }: ImportPDFModalProps) {
                         {/* Header */}
                         <div className="p-6 border-b border-slate-800 bg-[#161b22] flex justify-between items-center shrink-0">
                             <motion.div initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.1 }}>
-                                <h3 className="text-xl font-bold text-white">Import Mutasi Bank</h3>
+                                <h3 id="import-modal-title" className="text-xl font-bold text-white">Import Mutasi Bank</h3>
                                 <p className="text-sm text-slate-400 mt-1">Upload file PDF mutasi rekening Anda</p>
                             </motion.div>
                             <motion.button
+                                ref={firstFocusRef}
                                 whileTap={{ scale: 0.9 }}
                                 onClick={onClose}
                                 aria-label="Tutup modal"
@@ -205,12 +228,12 @@ export function ImportPDFModal({ open, onClose }: ImportPDFModalProps) {
                                                 { label: 'Berhasil', value: importResult.inserted, color: 'text-emerald-400' },
                                                 { label: 'Duplikat', value: importResult.duplicates, color: 'text-yellow-400' },
                                                 { label: 'Error', value: importResult.errors, color: 'text-rose-400' },
-                                            ].map((item, i) => (
+                                            ].map((item, idx) => (
                                                 <motion.div
                                                     key={item.label}
                                                     initial={{ opacity: 0, y: 10 }}
                                                     animate={{ opacity: 1, y: 0 }}
-                                                    transition={{ delay: 0.1 + i * 0.05 }}
+                                                    transition={{ delay: 0.1 + idx * 0.05 }}
                                                     className="bg-slate-800/50 rounded-lg p-2 text-center"
                                                 >
                                                     <p className={'text-lg font-bold ' + item.color}>{item.value}</p>
@@ -229,69 +252,77 @@ export function ImportPDFModal({ open, onClose }: ImportPDFModalProps) {
                                 )}
                             </AnimatePresence>
 
-                            {/* Dropzone */}
+                            {/* ✅ Fix: Dropzone pakai button biar accessible */}
                             <motion.div
                                 initial={{ opacity: 0, y: 10 }}
                                 animate={{ opacity: 1, y: 0 }}
                                 transition={{ delay: 0.15 }}
-                                onClick={() => fileInputRef.current?.click()}
-                                onDrop={handleDrop}
-                                onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
-                                onDragLeave={() => setIsDragging(false)}
-                                className={'border-2 border-dashed rounded-2xl p-8 flex flex-col items-center justify-center cursor-pointer transition-all group ' + (isDragging ? 'border-[#0da2e7] bg-[#0da2e7]/10' : selectedFile ? 'border-emerald-500/50 bg-emerald-500/5' : 'border-slate-700 hover:border-[#0da2e7] hover:bg-[#0da2e7]/5')}
                             >
-                                <input
-                                    ref={fileInputRef}
-                                    type="file"
-                                    accept=".pdf"
-                                    title="Upload file PDF"
-                                    aria-label="Upload file PDF mutasi bank"
-                                    className="hidden"
-                                    onChange={(e) => e.target.files?.[0] && handleFileSelect(e.target.files[0])}
-                                />
-                                <AnimatePresence mode="wait">
-                                    {selectedFile ? (
-                                        <motion.div
-                                            key="selected"
-                                            initial={{ opacity: 0, scale: 0.8 }}
-                                            animate={{ opacity: 1, scale: 1 }}
-                                            exit={{ opacity: 0, scale: 0.8 }}
-                                            transition={{ type: 'spring', stiffness: 300, damping: 20 }}
-                                            className="flex flex-col items-center"
-                                        >
-                                            <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: 'spring', delay: 0.05 }}
-                                                className="w-14 h-14 rounded-full bg-emerald-500/20 flex items-center justify-center mb-3">
-                                                <CheckCircle2 className="h-7 w-7 text-emerald-400" />
+                                <button
+                                    type="button"
+                                    onClick={() => fileInputRef.current?.click()}
+                                    onDrop={handleDrop}
+                                    onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
+                                    onDragLeave={() => setIsDragging(false)}
+                                    aria-label="Upload file PDF mutasi bank, klik atau seret file ke sini"
+                                    className={'w-full border-2 border-dashed rounded-2xl p-8 flex flex-col items-center justify-center cursor-pointer transition-all group ' + (isDragging ? 'border-[#0da2e7] bg-[#0da2e7]/10' : selectedFile ? 'border-emerald-500/50 bg-emerald-500/5' : 'border-slate-700 hover:border-[#0da2e7] hover:bg-[#0da2e7]/5')}
+                                >
+                                    <input
+                                        ref={fileInputRef}
+                                        type="file"
+                                        accept=".pdf"
+                                        title="Upload file PDF"
+                                        aria-label="Upload file PDF mutasi bank"
+                                        className="hidden"
+                                        onChange={(e) => e.target.files?.[0] && handleFileSelect(e.target.files[0])}
+                                    />
+                                    <AnimatePresence mode="wait">
+                                        {selectedFile ? (
+                                            <motion.div
+                                                key="selected"
+                                                initial={{ opacity: 0, scale: 0.8 }}
+                                                animate={{ opacity: 1, scale: 1 }}
+                                                exit={{ opacity: 0, scale: 0.8 }}
+                                                transition={{ type: 'spring', stiffness: 300, damping: 20 }}
+                                                className="flex flex-col items-center"
+                                            >
+                                                <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: 'spring', delay: 0.05 }}
+                                                    className="w-14 h-14 rounded-full bg-emerald-500/20 flex items-center justify-center mb-3">
+                                                    <CheckCircle2 className="h-7 w-7 text-emerald-400" />
+                                                </motion.div>
+                                                <p className="text-sm font-bold text-white">{selectedFile.name}</p>
+                                                <p className="text-xs text-slate-400 mt-1">{(selectedFile.size / 1024).toFixed(0)} KB • Klik untuk ganti</p>
                                             </motion.div>
-                                            <p className="text-sm font-bold text-white">{selectedFile.name}</p>
-                                            <p className="text-xs text-slate-400 mt-1">{(selectedFile.size / 1024).toFixed(0)} KB • Klik untuk ganti</p>
-                                        </motion.div>
-                                    ) : (
-                                        <motion.div
-                                            key="empty"
-                                            initial={{ opacity: 0, scale: 0.8 }}
-                                            animate={{ opacity: 1, scale: 1 }}
-                                            exit={{ opacity: 0, scale: 0.8 }}
-                                            className="flex flex-col items-center"
-                                        >
-                                            <motion.div whileHover={{ scale: 1.1 }}
-                                                className="w-14 h-14 rounded-full bg-slate-800 flex items-center justify-center mb-3 group-hover:bg-[#0da2e7]/10 transition-colors">
-                                                <CloudUpload className="h-7 w-7 text-[#0da2e7]" />
+                                        ) : (
+                                            <motion.div
+                                                key="empty"
+                                                initial={{ opacity: 0, scale: 0.8 }}
+                                                animate={{ opacity: 1, scale: 1 }}
+                                                exit={{ opacity: 0, scale: 0.8 }}
+                                                className="flex flex-col items-center"
+                                            >
+                                                <motion.div whileHover={{ scale: 1.1 }}
+                                                    className="w-14 h-14 rounded-full bg-slate-800 flex items-center justify-center mb-3 group-hover:bg-[#0da2e7]/10 transition-colors">
+                                                    <CloudUpload className="h-7 w-7 text-[#0da2e7]" />
+                                                </motion.div>
+                                                <p className="text-sm font-bold text-white">Klik atau seret file PDF</p>
+                                                <p className="text-xs text-slate-400 mt-1">Maksimal 10MB</p>
                                             </motion.div>
-                                            <p className="text-sm font-bold text-white">Klik atau seret file PDF</p>
-                                            <p className="text-xs text-slate-400 mt-1">Maksimal 10MB</p>
-                                        </motion.div>
-                                    )}
-                                </AnimatePresence>
+                                        )}
+                                    </AnimatePresence>
+                                </button>
                             </motion.div>
 
-                            {/* Config */}
+                            {/* ✅ Fix: label + htmlFor + id */}
                             <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}
                                 className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div className="space-y-2">
-                                    <label className="text-xs font-bold text-slate-300 uppercase tracking-wider">Dompet</label>
-                                    <select value={selectedWallet} onChange={(e) => setSelectedWallet(e.target.value)}
-                                        disabled={loadingWallets} aria-label="Pilih dompet"
+                                    <label htmlFor="select-wallet" className="text-xs font-bold text-slate-300 uppercase tracking-wider">Dompet</label>
+                                    <select
+                                        id="select-wallet"
+                                        value={selectedWallet}
+                                        onChange={(e) => setSelectedWallet(e.target.value)}
+                                        disabled={loadingWallets}
                                         className="w-full bg-[#161b22] border border-slate-700 rounded-xl py-3 px-4 text-white text-sm focus:ring-2 focus:ring-[#0da2e7] focus:border-transparent outline-none transition-all">
                                         {loadingWallets ? <option>Memuat...</option>
                                             : wallets.length === 0 ? <option>Tidak ada dompet</option>
@@ -299,16 +330,17 @@ export function ImportPDFModal({ open, onClose }: ImportPDFModalProps) {
                                     </select>
                                 </div>
                                 <div className="space-y-2">
-                                    <label className="text-xs font-bold text-slate-300 uppercase tracking-wider">Tipe Bank</label>
-                                    <select value={selectedBank} onChange={(e) => setSelectedBank(e.target.value as BankType)}
-                                        aria-label="Pilih tipe bank"
+                                    <label htmlFor="select-bank" className="text-xs font-bold text-slate-300 uppercase tracking-wider">Tipe Bank</label>
+                                    <select
+                                        id="select-bank"
+                                        value={selectedBank}
+                                        onChange={(e) => setSelectedBank(e.target.value as BankType)}
                                         className="w-full bg-[#161b22] border border-slate-700 rounded-xl py-3 px-4 text-white text-sm focus:ring-2 focus:ring-[#0da2e7] focus:border-transparent outline-none transition-all">
                                         {BANK_OPTIONS.map((b) => <option key={b.value} value={b.value}>{b.label}</option>)}
                                     </select>
                                 </div>
                             </motion.div>
 
-                            {/* Preview Results */}
                             {/* Preview Results */}
                             <AnimatePresence>
                                 {previewData && previewData.length > 0 && (
@@ -322,15 +354,12 @@ export function ImportPDFModal({ open, onClose }: ImportPDFModalProps) {
                                         <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">
                                             Preview ({previewTotal} transaksi, menampilkan {previewData.length})
                                         </p>
-
-                                        {/* Header kolom */}
                                         <div className="grid grid-cols-12 gap-2 px-3 py-1.5">
                                             <p className="col-span-2 text-[10px] font-bold text-slate-500 uppercase">Tanggal</p>
                                             <p className="col-span-5 text-[10px] font-bold text-slate-500 uppercase">Merchant</p>
                                             <p className="col-span-1 text-[10px] font-bold text-slate-500 uppercase text-center">Tipe</p>
                                             <p className="col-span-3 text-[10px] font-bold text-slate-500 uppercase text-right">Nominal</p>
                                         </div>
-
                                         <div className="max-h-52 overflow-y-auto space-y-1 pr-1">
                                             {previewData.map((tx, i) => (
                                                 <motion.div key={i}
@@ -339,33 +368,21 @@ export function ImportPDFModal({ open, onClose }: ImportPDFModalProps) {
                                                     transition={{ delay: i * 0.03 }}
                                                     className="grid grid-cols-12 gap-2 items-center px-3 py-2.5 bg-slate-800/50 rounded-lg hover:bg-slate-800 transition-colors"
                                                 >
-                                                    {/* Tanggal */}
                                                     <div className="col-span-2 min-w-0">
                                                         <p className="text-[10px] text-slate-300 font-medium">
                                                             {new Date(tx.date).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })}
                                                         </p>
-                                                        <p className="text-[9px] text-slate-500">
-                                                            {new Date(tx.date).getFullYear()}
-                                                        </p>
+                                                        <p className="text-[9px] text-slate-500">{new Date(tx.date).getFullYear()}</p>
                                                     </div>
-
-                                                    {/* Merchant */}
                                                     <div className="col-span-5 min-w-0">
                                                         <p className="text-xs font-bold text-white truncate">{tx.merchant}</p>
                                                         <p className="text-[9px] text-slate-500 truncate">{tx.description}</p>
                                                     </div>
-
-                                                    {/* Tipe */}
                                                     <div className="col-span-2 flex justify-center items-center">
-                                                        <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full ${tx.type === 'income'
-                                                            ? 'bg-emerald-500/20 text-emerald-400'
-                                                            : 'bg-rose-500/20 text-rose-400'
-                                                            }`}>
+                                                        <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full ${tx.type === 'income' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-rose-500/20 text-rose-400'}`}>
                                                             {tx.type === 'income' ? 'Masuk' : 'Keluar'}
                                                         </span>
                                                     </div>
-
-                                                    {/* Nominal */}
                                                     <div className="col-span-3 text-right">
                                                         <p className={`text-xs font-bold ${tx.type === 'income' ? 'text-emerald-400' : 'text-rose-400'}`}>
                                                             {tx.type === 'expense' ? '-' : '+'}{formatCurrency(tx.amount)}
