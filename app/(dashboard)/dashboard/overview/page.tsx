@@ -144,6 +144,11 @@ export default function DashboardOverviewPage() {
   const [newTransactions, setNewTransactions] = useState(0);
   const [syncsUsed, setSyncsUsed] = useState(0);
   const MAX_SYNCS = 5;
+  const [gmailStatus, setGmailStatus] = useState<{
+    connected: boolean;
+    is_expired: boolean;
+    can_sync_now: boolean;
+  } | null>(null);
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -199,6 +204,11 @@ export default function DashboardOverviewPage() {
       try {
         const syncStatus = await api.get<any>('/sync/status');
         if (syncStatus.data?.last_sync) setLastSynced(new Date(syncStatus.data.last_sync));
+        setGmailStatus({
+          connected: syncStatus.data?.email_connected || false,
+          is_expired: syncStatus.data?.is_expired || false,
+          can_sync_now: syncStatus.data?.can_sync_now || false,
+        });
       } catch { }
     } catch {
       toast.error('Gagal memuat data dashboard');
@@ -461,10 +471,10 @@ export default function DashboardOverviewPage() {
                 {chartBars.map((bar, i) => (
                   <div key={i} className="flex-1 min-w-6 text-center overflow-hidden">
                     <span className={`text-[9px] font-medium block truncate ${i === chartBars.length - 1
-                        ? 'text-[#0da2e7] font-bold'
-                        : bar.expense > 0
-                          ? 'text-slate-500 dark:text-slate-400'
-                          : 'text-slate-300 dark:text-slate-600'
+                      ? 'text-[#0da2e7] font-bold'
+                      : bar.expense > 0
+                        ? 'text-slate-500 dark:text-slate-400'
+                        : 'text-slate-300 dark:text-slate-600'
                       }`}>
                       {chartBars.length <= 10 || i % 2 === 0 || i === chartBars.length - 1 ? bar.label : ''}
                     </span>
@@ -479,9 +489,16 @@ export default function DashboardOverviewPage() {
         <div className="bg-white dark:bg-gray-900 p-6 rounded-xl border border-slate-200 dark:border-gray-800 shadow-sm flex flex-col">
           <div className="flex items-center justify-between mb-6">
             <h4 className="text-base font-bold text-slate-900 dark:text-white">Sinkronisasi Gmail</h4>
-            <div className="flex items-center gap-1 px-2 py-1 bg-emerald-50 text-emerald-600 rounded-md">
+            <div className={`flex items-center gap-1 px-2 py-1 rounded-md ${gmailStatus?.is_expired
+              ? 'bg-rose-50 text-rose-600'
+              : gmailStatus?.connected
+                ? 'bg-emerald-50 text-emerald-600'
+                : 'bg-slate-100 text-slate-500'
+              }`}>
               <CheckCircle2 className="h-3 w-3" />
-              <span className="text-[9px] font-bold uppercase tracking-wider">Terhubung</span>
+              <span className="text-[9px] font-bold uppercase tracking-wider">
+                {gmailStatus?.is_expired ? 'Expired' : gmailStatus?.connected ? 'Terhubung' : 'Tidak Aktif'}
+              </span>
             </div>
           </div>
           <div className="space-y-4">
@@ -501,7 +518,14 @@ export default function DashboardOverviewPage() {
               </div>
               <div>
                 <p className="text-[10px] text-slate-400 uppercase font-bold tracking-wider mb-1">Status</p>
-                <p className="text-sm font-bold text-emerald-500">Aktif</p>
+                <p className={`text-sm font-bold ${gmailStatus?.is_expired
+                    ? 'text-rose-500'
+                    : gmailStatus?.can_sync_now
+                      ? 'text-emerald-500'
+                      : 'text-slate-400'
+                  }`}>
+                  {gmailStatus?.is_expired ? 'Expired' : gmailStatus?.can_sync_now ? 'Aktif' : 'Tidak Aktif'}
+                </p>
               </div>
             </div>
           </div>
