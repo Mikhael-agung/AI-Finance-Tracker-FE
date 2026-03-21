@@ -10,7 +10,7 @@ import {
 } from "@/components/ui/card";
 import GmailConnect from "@/components/sync/GmailConnect";
 import EmailSyncStatus from "@/components/sync/EmailSyncStatus";
-import SyncHistory from "@/components/sync/SyncHistory";
+import { SyncHistory} from "@/components/sync/SyncHistory";
 import { Button } from "@/components/ui/button";
 import { syncApi } from "@/lib/api/sync";
 import { toast } from "sonner";
