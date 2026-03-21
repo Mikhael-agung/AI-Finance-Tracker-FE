@@ -31,17 +31,6 @@ interface SyncStatus {
   }>;
 }
 
-interface SyncHistoryItem {
-  id: string;
-  sync_type: 'manual' | 'auto';
-  status: 'success' | 'failed' | 'partial' | 'pending';
-  transactions_added: number;
-  started_at: string;
-  completed_at: string | null;
-  error_message: string | null;
-  duration_ms: number | null;
-}
-
 export default function SyncPage() {
   const router = useRouter();
   const [status, setStatus] = useState<SyncStatus | null>(null);
