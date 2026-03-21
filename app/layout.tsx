@@ -9,8 +9,8 @@ export const metadata: Metadata = {
   title: "FinanceFlow",
   description: "Track your finances, master your budget",
   icons: {
-    icon: "/icons/financeflow_logo_transparent.png",
-    apple: "/icons/financeflow_logo_transparent.png"
+    icon: "/icons/icon.png",
+    apple: "/icons/icon.png"
   }
 };
 
