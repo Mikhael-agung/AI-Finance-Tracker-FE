@@ -103,7 +103,6 @@ export function ImportPDFModal({ open, onClose }: ImportPDFModalProps) {
         return () => { document.body.style.overflow = ''; };
     }, [open]);
 
-    // ✅ Fix: wrap dengan useCallback
     const handleFileSelect = useCallback((file: File) => {
         if (file.type !== 'application/pdf') { toast.error('Hanya file PDF yang diizinkan'); return; }
         if (file.size > 10 * 1024 * 1024) { toast.error('Ukuran file maksimal 10MB'); return; }
@@ -112,7 +111,6 @@ export function ImportPDFModal({ open, onClose }: ImportPDFModalProps) {
         setImportResult(null);
     }, []);
 
-    // ✅ Fix: handleFileSelect masuk dependency array
     const handleDrop = useCallback((e: React.DragEvent) => {
         e.preventDefault();
         setIsDragging(false);
@@ -127,7 +125,6 @@ export function ImportPDFModal({ open, onClose }: ImportPDFModalProps) {
             const formData = new FormData();
             formData.append('file', selectedFile);
             if (selectedBank) formData.append('bank_type', selectedBank);
-            // ✅ Fix: proper typing
             const result = await api.post<PreviewResponse>('/import/pdf/preview', formData);
             const data = (result as unknown as PreviewResponse);
             setPreviewData(data?.preview || []);
@@ -148,7 +145,6 @@ export function ImportPDFModal({ open, onClose }: ImportPDFModalProps) {
             formData.append('file', selectedFile);
             formData.append('wallet_id', selectedWallet);
             if (selectedBank) formData.append('bank_type', selectedBank);
-            // ✅ Fix: proper typing
             const result = await api.post<ImportResponse>('/import/pdf', formData);
             const data = (result as unknown as ImportResponse);
             if (data?.inserted !== undefined) {
@@ -252,7 +248,6 @@ export function ImportPDFModal({ open, onClose }: ImportPDFModalProps) {
                                 )}
                             </AnimatePresence>
 
-                            {/* ✅ Fix: Dropzone pakai button biar accessible */}
                             <motion.div
                                 initial={{ opacity: 0, y: 10 }}
                                 animate={{ opacity: 1, y: 0 }}
@@ -313,7 +308,6 @@ export function ImportPDFModal({ open, onClose }: ImportPDFModalProps) {
                                 </button>
                             </motion.div>
 
-                            {/* ✅ Fix: label + htmlFor + id */}
                             <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}
                                 className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 <div className="space-y-2">
