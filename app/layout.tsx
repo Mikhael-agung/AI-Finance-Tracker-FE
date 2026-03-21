@@ -12,12 +12,6 @@ export const metadata: Metadata = {
     icon: "/icons/icon.png",
     apple: "/icons/icon.png"
   },
-  openGraph: {
-    title: "FinanceFlow",
-    description: "Track your finances, master your budget",
-    images: ["icons/financeflow_og_v3.svg"],
-    type: "website",
-  }
 };
 
 export default function RootLayout({
