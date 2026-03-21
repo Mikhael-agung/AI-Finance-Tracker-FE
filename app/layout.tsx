@@ -11,6 +11,13 @@ export const metadata: Metadata = {
   icons: {
     icon: "/icons/icon.png",
     apple: "/icons/icon.png"
+  },
+  openGraph: {
+    title: "FinanceFlow",
+    description: "Track your finances, master your budget",
+    url: "https://financeflow.vercel.app",
+    images: ["icons/financeflow_og_v3.svg"],
+    type: "website",
   }
 };
 
