@@ -458,7 +458,7 @@ export function ImportPDFModal({ open, onClose }: ImportPDFModalProps) {
                                 <h3 className="text-lg font-bold text-white">Semua Transaksi</h3>
                                 <p className="text-xs text-slate-400 mt-0.5">{previewTotal} transaksi ditemukan</p>
                             </div>
-                            <button onClick={() => setExpandModal(false)} className="p-2 hover:bg-slate-800 rounded-full transition-colors">
+                            <button onClick={() => setExpandModal(false)} aria-label="Tutup" className="p-2 hover:bg-slate-800 rounded-full transition-colors">
                                 <X className="h-5 w-5 text-slate-400" />
                             </button>
                         </div>
