@@ -37,7 +37,7 @@ interface PreviewResponse {
     message: string;
 }
 
-interface ImportResponse extends ImportResult {}
+interface ImportResponse extends ImportResult { }
 
 const BANK_OPTIONS: { value: BankType; label: string }[] = [
     { value: '', label: '🔍 Auto-detect (Otomatis)' },
@@ -61,6 +61,8 @@ export function ImportPDFModal({ open, onClose }: ImportPDFModalProps) {
     const [isDragging, setIsDragging] = useState(false);
     const [previewing, setPreviewing] = useState(false);
     const [importing, setImporting] = useState(false);
+    const [expandPreview, setExpandPreview] = useState(false);
+    const [showExpandModal, setExpandModal] = useState(false);
     const [previewData, setPreviewData] = useState<PreviewTransaction[] | null>(null);
     const [previewTotal, setPreviewTotal] = useState(0);
     const [importResult, setImportResult] = useState<ImportResult | null>(null);
@@ -125,12 +127,12 @@ export function ImportPDFModal({ open, onClose }: ImportPDFModalProps) {
             const formData = new FormData();
             formData.append('file', selectedFile);
             if (selectedBank) formData.append('bank_type', selectedBank);
-            const result = await api.post<{ data: PreviewResponse}>('/import/pdf/preview', formData);
+            const result = await api.post<{ data: PreviewResponse }>('/import/pdf/preview', formData);
             const data = (result as unknown as { data: PreviewResponse }).data;
             setPreviewData(data?.preview || []);
             setPreviewTotal(data?.total_found || 0);
 
-            if(!selectedBank && data?.bank) {
+            if (!selectedBank && data?.bank) {
                 setSelectedBank(data.bank as BankType);
                 toast.info(`Bank terdeteksi: ${data.bank}`);
             }
@@ -170,6 +172,7 @@ export function ImportPDFModal({ open, onClose }: ImportPDFModalProps) {
         <AnimatePresence>
             {open && (
                 <motion.div
+                key="main-modal"
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
@@ -186,7 +189,7 @@ export function ImportPDFModal({ open, onClose }: ImportPDFModalProps) {
                         animate={{ opacity: 1, scale: 1, y: 0 }}
                         exit={{ opacity: 0, scale: 0.95, y: 20 }}
                         transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-                        className="w-full max-w-xl bg-[#0d1117] text-slate-200 rounded-2xl shadow-2xl border border-slate-800 overflow-hidden flex flex-col max-h-[90vh]"
+                        className="w-full max-w-xl bg-[#0d1117] text-slate-200 rounded-2xl shadow-2xl border border-slate-800 overflow-hidden flex flex-col min-h-[800px] max-h-[90vh]"
                     >
                         {/* Header */}
                         <div className="p-6 border-b border-slate-800 bg-[#161b22] flex justify-between items-center shrink-0">
@@ -207,7 +210,7 @@ export function ImportPDFModal({ open, onClose }: ImportPDFModalProps) {
                         </div>
 
                         {/* Body */}
-                        <div className="p-6 space-y-5 overflow-y-auto">
+                        <div className="p-6 space-y-5 overflow-y-auto flex-1">
                             {/* Import Result */}
                             <AnimatePresence>
                                 {importResult && (
@@ -351,18 +354,25 @@ export function ImportPDFModal({ open, onClose }: ImportPDFModalProps) {
                                         transition={{ type: 'spring', damping: 20 }}
                                         className="space-y-2 overflow-hidden"
                                     >
-                                        <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">
-                                            Preview ({previewTotal} transaksi, menampilkan {previewData.length})
-                                        </p>
+                                        <div className="flex items-center justify-between">
+                                            <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+                                                Preview ({previewTotal} transaksi, menampilkan {Math.min(10, previewData.length)})
+                                            </p>
+                                            <button
+                                                onClick={() => setExpandModal(true)}
+                                                className="text-xs text-[#0da2e7] hover:underline font-medium"
+                                            >Lihat Semua
+                                            </button>
+                                        </div>
                                         <div className="grid grid-cols-12 gap-2 px-3 py-1.5">
                                             <p className="col-span-2 text-[10px] font-bold text-slate-500 uppercase">Tanggal</p>
                                             <p className="col-span-5 text-[10px] font-bold text-slate-500 uppercase">Merchant</p>
                                             <p className="col-span-1 text-[10px] font-bold text-slate-500 uppercase text-center">Tipe</p>
                                             <p className="col-span-3 text-[10px] font-bold text-slate-500 uppercase text-right">Nominal</p>
                                         </div>
-                                        <div className="max-h-52 overflow-y-auto space-y-1 pr-1">
-                                            {previewData.map((tx, i) => (
-                                                <motion.div key={i}
+                                        <div className="max-h-52 overflow-y-auto space-y-1 pr-1 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+                                            {previewData.slice(0, 10).map((tx, i) => (
+                                                <motion.div key={`main-${i}`}
                                                     initial={{ opacity: 0, x: -10 }}
                                                     animate={{ opacity: 1, x: 0 }}
                                                     transition={{ delay: i * 0.03 }}
@@ -421,6 +431,74 @@ export function ImportPDFModal({ open, onClose }: ImportPDFModalProps) {
                                 {importing ? 'Mengimpor...' : 'Import Sekarang'}
                             </motion.button>
                         </motion.div>
+                    </motion.div>
+                </motion.div>
+            )}
+
+            {/* Modal expand — taruh DI SINI */}
+            {showExpandModal && (
+                <motion.div
+                key={"expand-modal"}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    className="fixed inset-0 z-110 flex items-center justify-center p-4"
+                    style={{ backgroundColor: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(4px)' }}
+                    onClick={(e) => { if (e.target === e.currentTarget) setExpandModal(false); }}
+                >
+                    <motion.div
+                        initial={{ opacity: 0, scale: 0.95, y: 20 }}
+                        animate={{ opacity: 1, scale: 1, y: 0 }}
+                        exit={{ opacity: 0, scale: 0.95, y: 20 }}
+                        transition={{ type: 'spring', damping: 25, stiffness: 300 }}
+                        className="w-full max-w-2xl bg-[#0d1117] text-slate-200 rounded-2xl shadow-2xl border border-slate-800 flex flex-col max-h-[85vh]"
+                    >
+                        <div className="p-5 border-b border-slate-800 bg-[#161b22] flex justify-between items-center shrink-0">
+                            <div>
+                                <h3 className="text-lg font-bold text-white">Semua Transaksi</h3>
+                                <p className="text-xs text-slate-400 mt-0.5">{previewTotal} transaksi ditemukan</p>
+                            </div>
+                            <button onClick={() => setExpandModal(false)} className="p-2 hover:bg-slate-800 rounded-full transition-colors">
+                                <X className="h-5 w-5 text-slate-400" />
+                            </button>
+                        </div>
+                        <div className="overflow-y-auto flex-1 p-4 space-y-1 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+                            <div className="grid grid-cols-12 gap-2 px-3 py-1.5">
+                                <p className="col-span-2 text-[10px] font-bold text-slate-500 uppercase">Tanggal</p>
+                                <p className="col-span-5 text-[10px] font-bold text-slate-500 uppercase">Merchant</p>
+                                <p className="col-span-2 text-[10px] font-bold text-slate-500 uppercase text-center">Tipe</p>
+                                <p className="col-span-3 text-[10px] font-bold text-slate-500 uppercase text-right">Nominal</p>
+                            </div>
+                            {previewData?.map((tx, i) => (
+                                <motion.div key={`expand-${i}`}
+                                    initial={{ opacity: 0, x: -10 }}
+                                    animate={{ opacity: 1, x: 0 }}
+                                    transition={{ delay: i * 0.01 }}
+                                    className="grid grid-cols-12 gap-2 items-center px-3 py-2.5 bg-slate-800/50 rounded-lg hover:bg-slate-800 transition-colors"
+                                >
+                                    <div className="col-span-2">
+                                        <p className="text-[10px] text-slate-300 font-medium">
+                                            {new Date(tx.date).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })}
+                                        </p>
+                                        <p className="text-[9px] text-slate-500">{new Date(tx.date).getFullYear()}</p>
+                                    </div>
+                                    <div className="col-span-5 min-w-0">
+                                        <p className="text-xs font-bold text-white truncate">{tx.merchant}</p>
+                                        <p className="text-[9px] text-slate-500 truncate">{tx.description}</p>
+                                    </div>
+                                    <div className="col-span-2 flex justify-center">
+                                        <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full ${tx.type === 'income' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-rose-500/20 text-rose-400'}`}>
+                                            {tx.type === 'income' ? 'Masuk' : 'Keluar'}
+                                        </span>
+                                    </div>
+                                    <div className="col-span-3 text-right">
+                                        <p className={`text-xs font-bold ${tx.type === 'income' ? 'text-emerald-400' : 'text-rose-400'}`}>
+                                            {tx.type === 'expense' ? '-' : '+'}{formatCurrency(tx.amount)}
+                                        </p>
+                                    </div>
+                                </motion.div>
+                            ))}
+                        </div>
                     </motion.div>
                 </motion.div>
             )}

@@ -17,14 +17,12 @@ module.exports = {
     },
     extend: {
       colors: {
-        // ✅ Brand colors FinanceFlow - FIXED (tidak duplicate)
         "brand-blue": "#0EA5E9",
         "brand-blue-dark": "#0284C7",
         "brand-teal": "#14B8A6",
         "background-light": "#F0F9FF",
         "background-dark": "#0C1A2E",
 
-        // ✅ Shadcn/ui sistem warna (pakai CSS variables)
         border: "var(--color-border)",
         input: "var(--color-input)",
         ring: "var(--color-ring)",
