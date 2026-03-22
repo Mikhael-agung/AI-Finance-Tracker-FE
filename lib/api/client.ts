@@ -1,5 +1,5 @@
 // lib/api/client.ts
-import { getSession } from '@/lib/supabase/client';
+
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
 
@@ -40,20 +40,13 @@ class ApiClient {
     endpoint: string,
     options: RequestInit = {}
   ): Promise<FullApiResponse<T>> {
-    const session = await getSession();
-    const token = session?.access_token;
-
-
-    if (!token) {
-      throw new Error('No authentication token. Please login again.');
-    }
 
     const isFormData = options.body instanceof FormData;
 
     const headers: Record<string, string> = {
       ...(isFormData ? {} : { 'Content-Type': 'application/json' }),
       ...(options.headers as Record<string, string>),
-      'Authorization': `Bearer ${token}`,
+      // 'Authorization': `Bearer ${token}`,
     };
 
     const url = `${BASE_URL}${endpoint}`;
