@@ -125,10 +125,16 @@ export function ImportPDFModal({ open, onClose }: ImportPDFModalProps) {
             const formData = new FormData();
             formData.append('file', selectedFile);
             if (selectedBank) formData.append('bank_type', selectedBank);
-            const result = await api.post<PreviewResponse>('/import/pdf/preview', formData);
-            const data = (result as unknown as PreviewResponse);
+            const result = await api.post<{ data: PreviewResponse}>('/import/pdf/preview', formData);
+            const data = (result as unknown as { data: PreviewResponse }).data;
             setPreviewData(data?.preview || []);
             setPreviewTotal(data?.total_found || 0);
+
+            if(!selectedBank && data?.bank) {
+                setSelectedBank(data.bank as BankType);
+                toast.info(`Bank terdeteksi: ${data.bank}`);
+            }
+
             toast.success(`Ditemukan ${data?.total_found || 0} transaksi`);
         } catch (err: unknown) {
             toast.error(err instanceof Error ? err.message : 'Gagal preview PDF');
@@ -145,8 +151,8 @@ export function ImportPDFModal({ open, onClose }: ImportPDFModalProps) {
             formData.append('file', selectedFile);
             formData.append('wallet_id', selectedWallet);
             if (selectedBank) formData.append('bank_type', selectedBank);
-            const result = await api.post<ImportResponse>('/import/pdf', formData);
-            const data = (result as unknown as ImportResponse);
+            const result = await api.post<{ data: ImportResponse }>('/import/pdf', formData);
+            const data = (result as unknown as { data: ImportResponse }).data;
             if (data?.inserted !== undefined) {
                 setImportResult(data);
                 toast.success(`Import berhasil! ${data.inserted} transaksi ditambahkan`);

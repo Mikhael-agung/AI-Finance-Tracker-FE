@@ -43,7 +43,7 @@ class ApiClient {
     const session = await getSession();
     const token = session?.access_token;
 
-    // CodeRabbit #3: fail-fast jika tidak ada token
+
     if (!token) {
       throw new Error('No authentication token. Please login again.');
     }
@@ -58,7 +58,6 @@ class ApiClient {
 
     const url = `${BASE_URL}${endpoint}`;
 
-    // CodeRabbit #2: timeout 15s dengan AbortController
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 15000);
 
