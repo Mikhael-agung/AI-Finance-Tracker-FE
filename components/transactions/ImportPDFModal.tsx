@@ -462,7 +462,7 @@ export function ImportPDFModal({ open, onClose }: ImportPDFModalProps) {
                                 <X className="h-5 w-5 text-slate-400" />
                             </button>
                         </div>
-                        <div className="overflow-y-auto flex-1 p-4 space-y-1 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+                        <div className="overflow-y-auto flex-1 p-4 space-y-1 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] touch-action-pan-y overscroll-contain">
                             <div className="grid grid-cols-12 gap-2 px-3 py-1.5">
                                 <p className="col-span-2 text-[10px] font-bold text-slate-500 uppercase">Tanggal</p>
                                 <p className="col-span-5 text-[10px] font-bold text-slate-500 uppercase">Merchant</p>
