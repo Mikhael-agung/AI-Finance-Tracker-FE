@@ -1,3 +1,6 @@
+// middleware.ts (lib supabase middleware)
+
+
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
@@ -33,16 +36,16 @@ export async function updateSession(request: NextRequest) {
   const { data: { user }, error } = await supabase.auth.getUser()
 
   // Auth routes
-  const isAuthPage = request.nextUrl.pathname.startsWith('/login') || 
-                     request.nextUrl.pathname.startsWith('/register') ||
-                     request.nextUrl.pathname.startsWith('/auth/callback')
+  const isAuthPage = request.nextUrl.pathname.startsWith('/login') ||
+    request.nextUrl.pathname.startsWith('/register') ||
+    request.nextUrl.pathname.startsWith('/auth/callback')
 
   // Protected routes
   const isProtectedRoute = request.nextUrl.pathname.startsWith('/dashboard') ||
-                          request.nextUrl.pathname.startsWith('/transactions') ||
-                          request.nextUrl.pathname.startsWith('/wallets') ||
-                          request.nextUrl.pathname.startsWith('/budgets') ||
-                          request.nextUrl.pathname.startsWith('/settings')
+    request.nextUrl.pathname.startsWith('/transactions') ||
+    request.nextUrl.pathname.startsWith('/wallets') ||
+    request.nextUrl.pathname.startsWith('/budgets') ||
+    request.nextUrl.pathname.startsWith('/settings')
 
   // If user is not signed in and trying to access protected route
   if (!user && isProtectedRoute && !isAuthPage) {

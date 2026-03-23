@@ -1,7 +1,8 @@
 'use client'
 
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { useEffect } from 'react'
+import { usePathname, useRouter } from 'next/navigation'
 import {
   BarChart3,
   CreditCard,
@@ -25,6 +26,11 @@ const navItems = [
 
 function SidebarContent() {
   const pathname = usePathname()
+  const router = useRouter()
+
+  useEffect(() => {
+    navItems.forEach(item => { router.prefetch(item.href) })
+  }, [router])
 
   return (
     <div className="flex flex-col grow border-r border-gray-200 dark:border-gray-800 pt-14 bg-white dark:bg-gray-900 overflow-y-auto h-full">
