@@ -1,4 +1,6 @@
 /** @type {import('next').NextConfig} */
+
+const apiUrl = (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000').replace('/api', '');
 const nextConfig = {
   reactStrictMode: true,
   async headers() {
@@ -21,7 +23,7 @@ const nextConfig = {
                 ? "script-src 'self' 'unsafe-inline'"
                 : "script-src 'self' 'unsafe-eval' 'unsafe-inline'",
               "img-src 'self' data: https:",
-              `connect-src 'self' ${process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://*.supabase.co'} ${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000'} http://localhost:5000 https://www.google-analytics.com`,
+              `connect-src 'self' ${process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://*.supabase.co'} ${apiUrl} https://www.google-analytics.com`,
               "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
               "font-src 'self' https://fonts.gstatic.com https: data:",
               "object-src 'none'",
