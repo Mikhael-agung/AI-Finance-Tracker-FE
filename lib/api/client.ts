@@ -101,7 +101,7 @@ class ApiClient {
     const isExpired = Date.now() > this.csrfTokenExpiry;
     if (this.csrfToken && !isExpired) return this.csrfToken;
     try {
-      const res = await fetch(`${BASE_URL}/csrf-token`, { credentials: 'include' });
+      const res = await fetch('/api/csrf', { credentials: 'include' });
       if (!res.ok) {
         devLog('Error fetching CSRF token:', res.statusText);
         return null;
