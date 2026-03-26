@@ -86,7 +86,7 @@ function SidebarContent() {
 
 export function Sidebar() {
   return (
-    <div className="hidden lg:flex lg:w-63 lg:flex-col lg:fixed lg:inset-y-0">
+    <div className="hidden xl:flex xl:w-63 xl:flex-col xl:fixed xl:inset-y-0">
       <SidebarContent />
     </div>
   )
