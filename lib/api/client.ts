@@ -2,6 +2,7 @@
 import { createBrowserClient } from '@supabase/ssr'
 import type { SupabaseClient } from '@supabase/supabase-js'
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
+// const BASE_URL = "/api/proxy";
 
 export type ApiResponse<T = any> = {
   success: boolean;
@@ -61,7 +62,7 @@ class ApiClient {
 
   private cachedToken: string | null = null;
   private tokenExpiry: number = 0;
-  private tokenPromise: Promise<string | null> | null = null; 
+  private tokenPromise: Promise<string | null> | null = null;
   private readonly TOKEN_TTL = 4 * 60 * 1000;
 
   private async getToken(): Promise<string | null> {
@@ -87,7 +88,7 @@ class ApiClient {
       })
       .catch(() => null)
       .finally(() => {
-        this.tokenPromise = null; 
+        this.tokenPromise = null;
       });
 
     return this.tokenPromise;
@@ -100,8 +101,9 @@ class ApiClient {
   private async getCsrfToken(): Promise<string | null> {
     const isExpired = Date.now() > this.csrfTokenExpiry;
     if (this.csrfToken && !isExpired) return this.csrfToken;
+    this.csrfToken = null;
     try {
-      const res = await fetch('/api/csrf', { credentials: 'include' });
+      const res = await fetch(`${BASE_URL}/csrf-token`, { credentials: 'include' });
       if (!res.ok) {
         devLog('Error fetching CSRF token:', res.statusText);
         return null;

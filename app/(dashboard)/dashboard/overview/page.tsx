@@ -20,7 +20,8 @@ import {
   Wallet, CalendarIcon, ReceiptText, Pencil, FileUp, ChevronDown,
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { formatCurrency } from '@/lib/utils/formatters';
+import { formatCurrency, formatCurrencyCompact } from '@/lib/utils/formatters';
+import { useMediaQuery } from '@/lib/hooks/useMediaQuery';
 import { api } from '@/lib/api/client';
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts';
 
@@ -127,6 +128,8 @@ export default function DashboardOverviewPage() {
     walletCount: 0, totalTransactions: 0,
     recentTransactions: [], spendingByCategory: [],
   });
+  const isCompact = !useMediaQuery('(min-width: 768px)');
+  const fmt = isCompact ? formatCurrencyCompact : formatCurrency;
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
   const [lastSynced, setLastSynced] = useState<Date | null>(null);
@@ -357,7 +360,7 @@ export default function DashboardOverviewPage() {
         <div className="bg-white dark:bg-gray-900 p-4 md:p-6 rounded-xl border border-slate-200 dark:border-gray-800 shadow-sm">
           <p className="text-xs md:text-sm text-slate-500 font-semibold mb-1">Total Saldo</p>
           {loading ? <div className="h-7 w-20 bg-slate-100 animate-pulse rounded mb-2" /> : (
-            <h3 className="text-base md:text-2xl font-bold text-slate-900 dark:text-white mb-2">{formatCurrency(data.totalBalance)}</h3>
+            <h3 className="text-base md:text-2xl font-bold text-slate-900 dark:text-white mb-2">{fmt(data.totalBalance)}</h3>
           )}
           <div className="flex items-center gap-1 text-emerald-500 text-xs font-bold">
             <TrendingUp className="h-3 w-3" /><span>{data.walletCount} dompet aktif</span>
@@ -366,7 +369,7 @@ export default function DashboardOverviewPage() {
         <div className="bg-white dark:bg-gray-900 p-4 md:p-6 rounded-xl border border-slate-200 dark:border-gray-800 shadow-sm">
           <p className="text-xs md:text-sm text-slate-500 font-semibold mb-1">Pemasukan</p>
           {loading ? <div className="h-7 w-20 bg-slate-100 animate-pulse rounded mb-2" /> : (
-            <h3 className="text-base md:text-2xl font-bold text-slate-900 dark:text-white mb-2">{formatCurrency(data.totalIncome)}</h3>
+            <h3 className="text-base md:text-2xl font-bold text-slate-900 dark:text-white mb-2">{fmt(data.totalIncome)}</h3>
           )}
           <div className="flex items-center gap-1 text-emerald-500 text-xs font-bold">
             <TrendingUp className="h-3 w-3" /><span>Bulan ini</span>
@@ -375,7 +378,7 @@ export default function DashboardOverviewPage() {
         <div className="bg-white dark:bg-gray-900 p-4 md:p-6 rounded-xl border border-slate-200 dark:border-gray-800 shadow-sm">
           <p className="text-xs md:text-sm text-slate-500 font-semibold mb-1">Pengeluaran</p>
           {loading ? <div className="h-7 w-20 bg-slate-100 animate-pulse rounded mb-2" /> : (
-            <h3 className="text-base md:text-2xl font-bold text-slate-900 dark:text-white mb-2">{formatCurrency(data.totalExpenses)}</h3>
+            <h3 className="text-base md:text-2xl font-bold text-slate-900 dark:text-white mb-2">{fmt(data.totalExpenses)}</h3>
           )}
           <div className="flex items-center gap-1 text-rose-500 text-xs font-bold">
             <TrendingDown className="h-3 w-3" /><span>Bulan ini</span>
@@ -384,7 +387,7 @@ export default function DashboardOverviewPage() {
         <div className="bg-white dark:bg-gray-900 p-4 md:p-6 rounded-xl border border-slate-200 dark:border-gray-800 shadow-sm">
           <p className="text-xs md:text-sm text-slate-500 font-semibold mb-1">Tabungan</p>
           {loading ? <div className="h-7 w-20 bg-slate-100 animate-pulse rounded mb-2" /> : (
-            <h3 className="text-base md:text-2xl font-bold text-slate-900 dark:text-white mb-2">{formatCurrency(Math.max(0, savings))}</h3>
+            <h3 className="text-base md:text-2xl font-bold text-slate-900 dark:text-white mb-2">{fmt(Math.max(0, savings))}</h3>
           )}
           <div className="flex items-center gap-1 text-[#0da2e7] text-xs font-bold">
             <TrendingUp className="h-3 w-3" /><span>{savingsPercent}% dari pemasukan</span>
@@ -519,10 +522,10 @@ export default function DashboardOverviewPage() {
               <div>
                 <p className="text-[10px] text-slate-400 uppercase font-bold tracking-wider mb-1">Status</p>
                 <p className={`text-sm font-bold ${gmailStatus?.is_expired
-                    ? 'text-rose-500'
-                    : gmailStatus?.can_sync_now
-                      ? 'text-emerald-500'
-                      : 'text-slate-400'
+                  ? 'text-rose-500'
+                  : gmailStatus?.can_sync_now
+                    ? 'text-emerald-500'
+                    : 'text-slate-400'
                   }`}>
                   {gmailStatus?.is_expired ? 'Expired' : gmailStatus?.can_sync_now ? 'Aktif' : 'Tidak Aktif'}
                 </p>
