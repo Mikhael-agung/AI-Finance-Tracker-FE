@@ -8,7 +8,15 @@ export async function GET() {
             credentials: 'include',
         })
         const data = await res.json()
-        return NextResponse.json(data)
+
+        const response = NextResponse.json(data)
+
+        const setCookieHeader = res.headers.get('set-cookie')
+        if (setCookieHeader) {
+            response.headers.set('set-cookie', setCookieHeader)
+        }
+
+        return response
     } catch {
         return NextResponse.json({ success: false, token: null }, { status: 500 })
     }
