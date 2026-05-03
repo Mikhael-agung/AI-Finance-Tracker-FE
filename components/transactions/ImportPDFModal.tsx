@@ -16,7 +16,6 @@ import {
 } from "lucide-react";
 import { formatCurrency } from "@/lib/utils/formatters";
 import { motion, AnimatePresence } from "framer-motion";
-import { ca } from "date-fns/locale";
 
 type BankType = "" | "BCA" | "BNI_WONDR" | "BNI_MOBILE";
 
@@ -26,6 +25,7 @@ interface PreviewTransaction {
     type: "income" | "expense";
     merchant: string;
     description: string;
+    is_duplicate: boolean;
 }
 
 interface ImportResult {
@@ -41,6 +41,7 @@ interface PreviewResponse {
     preview: PreviewTransaction[];
     total_found: number;
     bank: string;
+    duplicate_count?: number;
     message: string;
 }
 
@@ -78,6 +79,8 @@ export function ImportPDFModal({ open, onClose }: ImportPDFModalProps) {
     const [showPassword, setShowPassword] = useState(false);
     const [showPasswordModal, setShowPasswordModal] = useState(false);
     const [passwordError, setPasswordError] = useState(false);
+    const [selectedTxs, setSelectedTxs] = useState<Set<number>>(new Set());
+    const [duplicateCount, setDuplicateCount] = useState(0);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const firstFocusRef = useRef<HTMLButtonElement>(null);
 
@@ -168,19 +171,31 @@ export function ImportPDFModal({ open, onClose }: ImportPDFModalProps) {
             const formData = new FormData();
             formData.append("file", selectedFile);
             if (selectedBank) formData.append("bank_type", selectedBank);
+            if (selectedWallet) formData.append("wallet_id", selectedWallet);
             if (pdfPassword) formData.append("pdf_password", pdfPassword);
+
             const result = await api.post<{ data: PreviewResponse }>(
                 "/import/pdf/preview",
                 formData,
             );
+
             const data = (result as unknown as { data: PreviewResponse }).data;
-            setPreviewData(data?.preview || []);
+            const preview = data?.preview || [];
+            setPreviewData(preview);
             setPreviewTotal(data?.total_found || 0);
+            setDuplicateCount(data?.duplicate_count || 0);
 
             if (!selectedBank && data?.bank) {
                 setSelectedBank(data.bank as BankType);
                 toast.info(`Bank terdeteksi: ${data.bank}`);
             }
+
+            const nonDupIndexes = new Set<number>(
+                preview
+                    .map((tx: PreviewTransaction, i: number) => tx.is_duplicate ? null : i)
+                    .filter((i): i is number => i !== null)
+            );
+            setSelectedTxs(nonDupIndexes);
 
             toast.success(`Ditemukan ${data?.total_found || 0} transaksi`);
         } catch (err: unknown) {
@@ -203,11 +218,20 @@ export function ImportPDFModal({ open, onClose }: ImportPDFModalProps) {
             const formData = new FormData();
             formData.append("file", selectedFile!);
             if (selectedBank) formData.append("bank_type", selectedBank);
+            if (selectedWallet) formData.append("wallet_id", selectedWallet);
             formData.append("pdf_password", pdfPassword);
             const result = await api.post<{ data: PreviewResponse }>("/import/pdf/preview", formData);
             const data = (result as unknown as { data: PreviewResponse }).data;
-            setPreviewData(data?.preview || []);
+            const preview = data?.preview || [];
+            setPreviewData(preview);
             setPreviewTotal(data?.total_found || 0);
+            setDuplicateCount(data?.duplicate_count || 0);
+            const nonDupIndexes = new Set<number>(
+                preview
+                    .map((tx: PreviewTransaction, i: number) => tx.is_duplicate ? null : i)
+                    .filter((i): i is number => i !== null)
+            );
+            setSelectedTxs(nonDupIndexes);
             if (!selectedBank && data?.bank) setSelectedBank(data.bank as BankType);
             setShowPassword(false);
             setPdfPassword("");
@@ -230,6 +254,13 @@ export function ImportPDFModal({ open, onClose }: ImportPDFModalProps) {
             toast.error("Pilih file PDF dan dompet terlebih dahulu");
             return;
         }
+
+        // Kalau sudah preview, kirim hanya yang dipilih
+        if (previewData && previewData.length > 0 && selectedTxs.size === 0) {
+            toast.warning("Pilih minimal satu transaksi untuk diimport");
+            return;
+        }
+
         setImporting(true);
         try {
             const formData = new FormData();
@@ -593,9 +624,33 @@ export function ImportPDFModal({ open, onClose }: ImportPDFModalProps) {
                                     >
                                         <div className="flex items-center justify-between">
                                             <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">
-                                                Preview ({previewTotal} transaksi, menampilkan{" "}
-                                                {Math.min(10, previewData.length)})
+                                                Preview ({previewTotal} transaksi
+                                                {duplicateCount > 0 && (
+                                                    <span className="text-yellow-400"> · {duplicateCount} duplikat</span>
+                                                )})
                                             </p>
+                                            <div className="flex gap-3 items-center">
+                                                <button
+                                                    onClick={() => setSelectedTxs(new Set(previewData.map((_, i) => i)))}
+                                                    className="text-[10px] text-[#0da2e7] hover:underline"
+                                                >
+                                                    Pilih Semua
+                                                </button>
+                                                <button
+                                                    onClick={() => setSelectedTxs(new Set(
+                                                        previewData.map((tx, i) => tx.is_duplicate ? null : i).filter((i): i is number => i !== null)
+                                                    ))}
+                                                    className="text-[10px] text-slate-400 hover:underline"
+                                                >
+                                                    Non-Duplikat
+                                                </button>
+                                                <button
+                                                    onClick={() => setSelectedTxs(new Set())}
+                                                    className="text-[10px] text-slate-400 hover:underline"
+                                                >
+                                                    Hapus Semua
+                                                </button>
+                                            </div>
                                             <button
                                                 onClick={() => setExpandModal(true)}
                                                 className="text-xs text-[#0da2e7] hover:underline font-medium"
@@ -604,18 +659,11 @@ export function ImportPDFModal({ open, onClose }: ImportPDFModalProps) {
                                             </button>
                                         </div>
                                         <div className="grid grid-cols-12 gap-2 px-3 py-1.5">
-                                            <p className="col-span-2 text-[10px] font-bold text-slate-500 uppercase">
-                                                Tanggal
-                                            </p>
-                                            <p className="col-span-5 text-[10px] font-bold text-slate-500 uppercase">
-                                                Merchant
-                                            </p>
-                                            <p className="col-span-1 text-[10px] font-bold text-slate-500 uppercase text-center">
-                                                Tipe
-                                            </p>
-                                            <p className="col-span-3 text-[10px] font-bold text-slate-500 uppercase text-right">
-                                                Nominal
-                                            </p>
+                                            <p className="col-span-1 text-[10px] font-bold text-slate-500 uppercase"></p>
+                                            <p className="col-span-2 text-[10px] font-bold text-slate-500 uppercase">Tanggal</p>
+                                            <p className="col-span-4 text-[10px] font-bold text-slate-500 uppercase">Merchant</p>
+                                            <p className="col-span-2 text-[10px] font-bold text-slate-500 uppercase text-center">Tipe</p>
+                                            <p className="col-span-3 text-[10px] font-bold text-slate-500 uppercase text-right">Nominal</p>
                                         </div>
                                         <div className="max-h-52 overflow-y-auto space-y-1 pr-1 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
                                             {previewData.slice(0, 10).map((tx, i) => (
@@ -624,38 +672,47 @@ export function ImportPDFModal({ open, onClose }: ImportPDFModalProps) {
                                                     initial={{ opacity: 0, x: -10 }}
                                                     animate={{ opacity: 1, x: 0 }}
                                                     transition={{ delay: i * 0.03 }}
-                                                    className="grid grid-cols-12 gap-2 items-center px-3 py-2.5 bg-slate-800/50 rounded-lg hover:bg-slate-800 transition-colors"
+                                                    className={`grid grid-cols-12 gap-2 items-center px-3 py-2.5 rounded-lg transition-colors
+        ${tx.is_duplicate ? 'bg-yellow-500/5 border border-yellow-500/20' : 'bg-slate-800/50 hover:bg-slate-800'}
+        ${!selectedTxs.has(i) ? 'opacity-50' : ''}
+    `}
                                                 >
+                                                    {/* Checkbox */}
+                                                    <div className="col-span-1 flex justify-center">
+                                                        <input
+                                                            type="checkbox"
+                                                            checked={selectedTxs.has(i)}
+                                                            onChange={(e) => {
+                                                                const next = new Set(selectedTxs);
+                                                                e.target.checked ? next.add(i) : next.delete(i);
+                                                                setSelectedTxs(next);
+                                                            }}
+                                                            className="w-3.5 h-3.5 rounded border-slate-600 accent-[#0da2e7] cursor-pointer"
+                                                        />
+                                                    </div>
+                                                    {/* Tanggal */}
                                                     <div className="col-span-2 min-w-0">
                                                         <p className="text-[10px] text-slate-300 font-medium">
-                                                            {new Date(tx.date).toLocaleDateString("id-ID", {
-                                                                day: "numeric",
-                                                                month: "short",
-                                                            })}
+                                                            {new Date(tx.date).toLocaleDateString("id-ID", { day: "numeric", month: "short" })}
                                                         </p>
-                                                        <p className="text-[9px] text-slate-500">
-                                                            {new Date(tx.date).getFullYear()}
-                                                        </p>
+                                                        <p className="text-[9px] text-slate-500">{new Date(tx.date).getFullYear()}</p>
                                                     </div>
-                                                    <div className="col-span-5 min-w-0">
-                                                        <p className="text-xs font-bold text-white truncate">
-                                                            {tx.merchant}
-                                                        </p>
-                                                        <p className="text-[9px] text-slate-500 truncate">
-                                                            {tx.description}
-                                                        </p>
+                                                    {/* Merchant */}
+                                                    <div className="col-span-4 min-w-0">
+                                                        <p className="text-xs font-bold text-white truncate">{tx.merchant}</p>
+                                                        {tx.is_duplicate && (
+                                                            <span className="text-[9px] text-yellow-400 font-bold">⚠ Duplikat</span>
+                                                        )}
                                                     </div>
+                                                    {/* Tipe */}
                                                     <div className="col-span-2 flex justify-center items-center">
-                                                        <span
-                                                            className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full ${tx.type === "income" ? "bg-emerald-500/20 text-emerald-400" : "bg-rose-500/20 text-rose-400"}`}
-                                                        >
+                                                        <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full ${tx.type === "income" ? "bg-emerald-500/20 text-emerald-400" : "bg-rose-500/20 text-rose-400"}`}>
                                                             {tx.type === "income" ? "Masuk" : "Keluar"}
                                                         </span>
                                                     </div>
+                                                    {/* Nominal */}
                                                     <div className="col-span-3 text-right">
-                                                        <p
-                                                            className={`text-xs font-bold ${tx.type === "income" ? "text-emerald-400" : "text-rose-400"}`}
-                                                        >
+                                                        <p className={`text-xs font-bold ${tx.type === "income" ? "text-emerald-400" : "text-rose-400"}`}>
                                                             {tx.type === "expense" ? "-" : "+"}
                                                             {formatCurrency(tx.amount)}
                                                         </p>
@@ -728,7 +785,7 @@ export function ImportPDFModal({ open, onClose }: ImportPDFModalProps) {
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
-                    className="fixed inset-0 z-[110] flex items-center justify-center p-4"
+                    className="fixed inset-0 z-110 flex items-center justify-center p-4"
                     style={{
                         backgroundColor: "rgba(0,0,0,0.8)",
                         backdropFilter: "blur(4px)",
@@ -887,8 +944,8 @@ export function ImportPDFModal({ open, onClose }: ImportPDFModalProps) {
                                     placeholder="Password PDF..."
                                     autoFocus
                                     className={`w-full bg-[#161b22] border rounded-xl py-3 px-4 pr-12 text-white text-sm focus:ring-2 focus:outline-none transition-all ${passwordError
-                                            ? "border-red-500 focus:ring-red-500/30"
-                                            : "border-slate-700 focus:ring-[#0da2e7] focus:border-transparent"
+                                        ? "border-red-500 focus:ring-red-500/30"
+                                        : "border-slate-700 focus:ring-[#0da2e7] focus:border-transparent"
                                         }`}
                                 />
                                 <button
