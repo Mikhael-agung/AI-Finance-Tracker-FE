@@ -52,6 +52,11 @@ const supabaseAnonKey = SUPABASE_ANON_KEY as string;
 
 class ApiClient {
 
+  invalidateCsrf() {
+    this.csrfToken = null;
+    this.csrfTokenExpiry = 0;
+  }
+
   private supabaseClient: SupabaseClient | null = null;
   private getSupabaseClient(): SupabaseClient {
     if (!this.supabaseClient) {
@@ -64,6 +69,9 @@ class ApiClient {
   private tokenExpiry: number = 0;
   private tokenPromise: Promise<string | null> | null = null;
   private readonly TOKEN_TTL = 4 * 60 * 1000;
+  private csrfToken: string | null = null;
+  private csrfTokenExpiry: number = 0;
+  private readonly CSRF_TTL = 30 * 60 * 1000; // 30 minutes
 
   private async getToken(): Promise<string | null> {
     if (this.cachedToken && Date.now() < this.tokenExpiry) {
@@ -93,10 +101,6 @@ class ApiClient {
 
     return this.tokenPromise;
   }
-
-  private csrfToken: string | null = null;
-  private csrfTokenExpiry: number = 0;
-  private readonly CSRF_TTL = 30 * 60 * 1000; // 30 minutes
 
   private async getCsrfToken(): Promise<string | null> {
     const isExpired = Date.now() > this.csrfTokenExpiry;
