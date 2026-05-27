@@ -687,6 +687,7 @@ export function ImportPDFModal({ open, onClose }: ImportPDFModalProps) {
                                                                 e.target.checked ? next.add(i) : next.delete(i);
                                                                 setSelectedTxs(next);
                                                             }}
+                                                            aria-label={`Pilih transaksi ${tx.merchant} pada ${new Date(tx.date).toLocaleDateString("id-ID", { day: "numeric", month: "short", year: "numeric" })}`}
                                                             className="w-3.5 h-3.5 rounded border-slate-600 accent-[#0da2e7] cursor-pointer"
                                                         />
                                                     </div>
@@ -913,6 +914,8 @@ export function ImportPDFModal({ open, onClose }: ImportPDFModalProps) {
                             </div>
                             <button
                                 onClick={() => { setShowPasswordModal(false); setPdfPassword(""); }}
+                                aria-label="Tutup modal password PDF"
+                                title="Tutup"
                                 className="p-1.5 hover:bg-slate-800 rounded-full transition-colors"
                             >
                                 <X className="h-4 w-4 text-slate-400" />
@@ -951,6 +954,8 @@ export function ImportPDFModal({ open, onClose }: ImportPDFModalProps) {
                                 <button
                                     type="button"
                                     onClick={() => setShowPassword(!showPassword)}
+                                    aria-label={showPassword ? "Sembunyikan password" : "Tampilkan password"}
+                                    title={showPassword ? "Sembunyikan password" : "Tampilkan password"}
                                     className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white transition-colors text-sm"
                                 >
                                     {showPassword ? "🙈" : "👁️"}
