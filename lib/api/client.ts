@@ -1,7 +1,8 @@
 // lib/api/client.ts
-import { getSession } from '@/lib/supabase/client';
-
+import { createBrowserClient } from '@supabase/ssr'
+import type { SupabaseClient } from '@supabase/supabase-js'
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
+// const BASE_URL = "/api/proxy";
 
 export type ApiResponse<T = any> = {
   success: boolean;
@@ -35,33 +36,120 @@ export type FullApiResponse<T = any> = {
   pagination?: PaginationMeta;
 };
 
+const isDev = process.env.NODE_ENV === 'development';
+const devLog = (...args: any[]) => isDev && console.error(...args);
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL;
+const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+  throw new Error(
+    'Missing required environment variables: NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY must be set'
+  );
+}
+
+const supabaseUrl = SUPABASE_URL as string;
+const supabaseAnonKey = SUPABASE_ANON_KEY as string;
+
 class ApiClient {
+
+  invalidateCsrf() {
+    this.csrfToken = null;
+    this.csrfTokenExpiry = 0;
+  }
+
+  private supabaseClient: SupabaseClient | null = null;
+  private getSupabaseClient(): SupabaseClient {
+    if (!this.supabaseClient) {
+      this.supabaseClient = createBrowserClient(supabaseUrl, supabaseAnonKey);
+    }
+    return this.supabaseClient;
+  }
+
+  private cachedToken: string | null = null;
+  private tokenExpiry: number = 0;
+  private tokenPromise: Promise<string | null> | null = null;
+  private readonly TOKEN_TTL = 4 * 60 * 1000;
+  private csrfToken: string | null = null;
+  private csrfTokenExpiry: number = 0;
+  private readonly CSRF_TTL = 30 * 60 * 1000; // 30 minutes
+
+  private async getToken(): Promise<string | null> {
+    if (this.cachedToken && Date.now() < this.tokenExpiry) {
+      return this.cachedToken;
+    }
+
+    if (this.tokenPromise) {
+      return this.tokenPromise;
+    }
+
+    this.tokenPromise = fetch('/api/auth/token', { credentials: 'include' })
+      .then(res => {
+        if (!res.ok) return null;
+        return res.json();
+      })
+      .then(data => {
+        if (typeof data?.token === 'string' && data.token.length > 0) {
+          this.cachedToken = data.token;
+          this.tokenExpiry = Date.now() + this.TOKEN_TTL;
+        }
+        return this.cachedToken;
+      })
+      .catch(() => null)
+      .finally(() => {
+        this.tokenPromise = null;
+      });
+
+    return this.tokenPromise;
+  }
+
+  private async getCsrfToken(): Promise<string | null> {
+    const isExpired = Date.now() > this.csrfTokenExpiry;
+    if (this.csrfToken && !isExpired) return this.csrfToken;
+    this.csrfToken = null;
+    try {
+      const res = await fetch(`${BASE_URL}/csrf-token`, { credentials: 'include' });
+      if (!res.ok) {
+        devLog('Error fetching CSRF token:', res.statusText);
+        return null;
+      }
+
+      const data = await res.json();
+
+      if (typeof data?.token !== 'string' || data.token.length === 0) {
+        devLog('Invalid CSRF token received:', data);
+        return null;
+      }
+
+      this.csrfToken = data.token;
+      this.csrfTokenExpiry = Date.now() + this.CSRF_TTL;
+      return this.csrfToken;
+    } catch (err) {
+      devLog('Error fetching CSRF token:', err);
+      return null;
+    }
+  }
+
   private async request<T>(
     endpoint: string,
     options: RequestInit = {}
   ): Promise<FullApiResponse<T>> {
-    const session = await getSession();
-    const token = session?.access_token;
 
-    // CodeRabbit #3: fail-fast jika tidak ada token
-    if (!token) {
-      throw new Error('No authentication token. Please login again.');
-    }
-
+    const isMutating = ['POST', 'PUT', 'PATCH', 'DELETE'].includes(options.method || 'GET');
+    const csrfToken = isMutating ? await this.getCsrfToken() : null;
     const isFormData = options.body instanceof FormData;
-
+    const token = await this.getToken();
     const headers: Record<string, string> = {
       ...(isFormData ? {} : { 'Content-Type': 'application/json' }),
       ...(options.headers as Record<string, string>),
-      'Authorization': `Bearer ${token}`,
+      ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+      ...(csrfToken ? { 'X-CSRF-Token': csrfToken } : {}),
+
     };
 
-    const url = `${BASE_URL}${endpoint}`;
 
-    // CodeRabbit #2: timeout 15s dengan AbortController
+    const url = `${BASE_URL}${endpoint}`;
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 15000);
-
     const config: RequestInit = {
       ...options,
       headers,
@@ -104,7 +192,7 @@ class ApiClient {
         if (error.name === 'AbortError') {
           throw new Error('Request timeout. Please try again.');
         }
-        console.error(`API Error [${endpoint}]:`, error.message);
+        devLog(`API Error [${endpoint}]:`, error.message);
         throw error;
       }
       throw new Error("Network error occurred");
@@ -114,10 +202,10 @@ class ApiClient {
   async get<T>(endpoint: string, query?: Record<string, any>): Promise<FullApiResponse<T>> {
     const queryString = query
       ? `?${new URLSearchParams(
-          Object.fromEntries(
-            Object.entries(query).filter(([, v]) => v !== undefined && v !== null && v !== '')
-          )
-        ).toString()}`
+        Object.fromEntries(
+          Object.entries(query).filter(([, v]) => v !== undefined && v !== null && v !== '')
+        )
+      ).toString()}`
       : '';
     return this.request<T>(`${endpoint}${queryString}`, { method: 'GET' });
   }

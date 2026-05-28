@@ -27,14 +27,16 @@ export function UserNav({ user }: UserNavProps) {
 
   const handleLogout = async () => {
     try {
-      const { error } = await supabase.auth.signOut();
-      if (error) throw error;
-
-      toast.success("Logged out successfully");
-      router.push("/login");
-      router.refresh();
+      const res = await fetch('/api/auth/logout', {
+        method: 'POST',
+        credentials: 'include'
+      })
+      if (!res.ok) throw new Error('Logout failed')
+      toast.success('Logged out successfully')
+      router.push('/login')
+      router.refresh()
     } catch (error) {
-      toast.error("Failed to logout");
+      toast.error('Failed to logout')
     }
   };
 

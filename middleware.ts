@@ -1,36 +1,33 @@
-import { createServerClient } from '@supabase/ssr'
-import { NextResponse, type NextRequest } from 'next/server'
+// middleware.ts (root level)
 
-// Route yang boleh diakses tanpa login
-const PUBLIC_ROUTES = [
-  '/',
-  '/login',
-  '/register',
-]
+import { createServerClient } from "@supabase/ssr";
+import { NextResponse, type NextRequest } from "next/server";
 
-// Prefix yang boleh diakses tanpa login
+const PUBLIC_ROUTES = ["/", "/login", "/register"];
+
 const PUBLIC_PREFIXES = [
-  '/auth',
-  '/api',
-  '/_next',
-  '/favicon',
-  '/icons',
-  '/images',
-  '/fonts',
-]
+  "/auth",
+  "/api",
+  "/_next",
+  "/favicon",
+  "/icons",
+  "/images",
+  "/fonts",
+];
 
 function isPublicRoute(pathname: string): boolean {
-  if (PUBLIC_ROUTES.includes(pathname)) return true
-  if (PUBLIC_PREFIXES.some(prefix => pathname.startsWith(prefix))) return true
-  return false
+  if (PUBLIC_ROUTES.includes(pathname)) return true;
+  if (PUBLIC_PREFIXES.some((prefix) => pathname.startsWith(prefix)))
+    return true;
+  return false;
 }
 
 function isAuthRoute(pathname: string): boolean {
-  return pathname.startsWith('/login') || pathname.startsWith('/register')
+  return pathname.startsWith("/login") || pathname.startsWith("/register");
 }
 
 export async function middleware(request: NextRequest) {
-  let supabaseResponse = NextResponse.next({ request })
+  let supabaseResponse = NextResponse.next({ request });
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -38,63 +35,62 @@ export async function middleware(request: NextRequest) {
     {
       cookies: {
         getAll() {
-          return request.cookies.getAll()
+          return request.cookies.getAll();
         },
         setAll(cookiesToSet) {
           cookiesToSet.forEach(({ name, value }) =>
-            request.cookies.set(name, value)
-          )
-          supabaseResponse = NextResponse.next({ request })
+            request.cookies.set(name, value),
+          );
+          supabaseResponse = NextResponse.next({ request });
           cookiesToSet.forEach(({ name, value, options }) =>
-            supabaseResponse.cookies.set(name, value, options)
-          )
+            supabaseResponse.cookies.set(name, value, {
+              ...options,
+              httpOnly: true,
+              secure: process.env.NODE_ENV === "production",
+              sameSite: "lax",
+            }),
+          );
         },
       },
-    }
-  )
+    },
+  );
 
-  // PENTING: getUser() auto-refresh session
-  // Ini yang bikin user tidak perlu login ulang setiap buka app
   const {
     data: { user },
     error,
-  } = await supabase.auth.getUser()
+  } = await supabase.auth.getUser();
 
-  const pathname = request.nextUrl.pathname
+  const pathname = request.nextUrl.pathname;
 
-  // Kalau ada error selain "session missing", biarkan lewat
-  if (error && error.message !== 'Auth session missing!') {
-    return supabaseResponse
+  if (error && error.message !== "Auth session missing!") {
+    return supabaseResponse;
   }
 
-  // User belum login & akses halaman protected
   if (!user && !isPublicRoute(pathname)) {
-    const redirectUrl = request.nextUrl.clone()
-    redirectUrl.pathname = '/login'
-    // Simpan URL tujuan agar redirect balik setelah login
-    redirectUrl.searchParams.set('redirect', pathname)
-    return NextResponse.redirect(redirectUrl)
+    const redirectUrl = request.nextUrl.clone();
+    redirectUrl.pathname = "/login";
+    redirectUrl.searchParams.set("redirect", pathname);
+    return NextResponse.redirect(redirectUrl);
   }
 
-  // User sudah login & akses halaman auth
   if (user && isAuthRoute(pathname)) {
-    const redirectUrl = request.nextUrl.clone()
-    redirectUrl.pathname = '/dashboard/overview'
-    redirectUrl.search = ''
-    return NextResponse.redirect(redirectUrl)
+    const redirectUrl = request.nextUrl.clone();
+    redirectUrl.pathname = "/dashboard/overview";
+    redirectUrl.search = "";
+    return NextResponse.redirect(redirectUrl);
   }
 
-  if (user && pathname === '/dashboard') {
-    const redirectUrl = request.nextUrl.clone()
-    redirectUrl.pathname = '/dashboard/overview'
-    return NextResponse.redirect(redirectUrl)
+  if (user && pathname === "/dashboard") {
+    const redirectUrl = request.nextUrl.clone();
+    redirectUrl.pathname = "/dashboard/overview";
+    return NextResponse.redirect(redirectUrl);
   }
 
-  return supabaseResponse
+  return supabaseResponse;
 }
 
 export const config = {
   matcher: [
-    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|css|js)$).*)',
+    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|css|js)$).*)",
   ],
-}
+};

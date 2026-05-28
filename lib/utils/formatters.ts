@@ -7,6 +7,23 @@ export const formatCurrency = (amount: number, currency: string = 'IDR'): string
   }).format(amount);
 };
 
+export const formatCurrencyCompact = (amount: number, currency: string = 'IDR'): string => {
+  const abs = Math.abs(amount);
+  const sign = amount < 0 ? '-' : '';
+  const prefix = currency === 'IDR' ? 'Rp ' : currency + ' ';
+
+  if (abs >= 1_000_000_000) {
+    return `${sign}${prefix}${(abs / 1_000_000_000).toFixed(1).replace(/\.0$/, '')}M`;
+  }
+  if (abs >= 1_000_000) {
+    return `${sign}${prefix}${(abs / 1_000_000).toFixed(1).replace(/\.0$/, '')}jt`;
+  }
+  if (abs >= 1_000) {
+    return `${sign}${prefix}${(abs / 1_000).toFixed(1).replace(/\.0$/, '')}rb`;
+  }
+  return `${sign}${prefix}${abs}`;
+};
+
 export const formatDate = (dateString: string | Date): string => {
   const date = new Date(dateString);
   return new Intl.DateTimeFormat('id-ID', {

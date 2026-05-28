@@ -2,8 +2,9 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ArrowDownIcon, ArrowUpIcon, Wallet, TrendingUp, TrendingDown, CreditCard } from 'lucide-react';
-import { formatCurrency } from '@/lib/utils/formatters';
+import { formatCurrency, formatCurrencyCompact } from '@/lib/utils/formatters';
 import { cn } from '@/lib/utils';
+import { useMediaQuery } from '@/lib/hooks/useMediaQuery';
 
 interface OverviewCardsProps {
   totalBalance: number;
@@ -22,57 +23,61 @@ const OverviewCards = ({
   walletCount,
   loading = false,
 }: OverviewCardsProps) => {
+  // Compact jika layar < 1280px (xl) — di sinilah card mulai sempit
+  const isCompact = !useMediaQuery('(min-width: 1280px)');
+  const currencyFormatter = isCompact ? formatCurrencyCompact : formatCurrency;
+
   const cards = [
     {
-      title: 'Total Balance',
+      title: 'Total Saldo',
       value: totalBalance,
       icon: Wallet,
       color: 'text-blue-600 dark:text-blue-400',
       bgColor: 'bg-blue-100 dark:bg-blue-900/20',
-      description: 'Across all wallets',
-      formatter: formatCurrency,
+      description: `${walletCount} dompet aktif`,
+      formatter: currencyFormatter,
     },
     {
-      title: 'Total Income',
+      title: 'Pemasukan',
       value: totalIncome,
       icon: TrendingUp,
       color: 'text-green-600 dark:text-green-400',
       bgColor: 'bg-green-100 dark:bg-green-900/20',
-      description: 'This month',
-      formatter: formatCurrency,
+      description: 'Bulan ini',
+      formatter: currencyFormatter,
     },
     {
-      title: 'Total Expenses',
+      title: 'Pengeluaran',
       value: totalExpenses,
       icon: TrendingDown,
       color: 'text-red-600 dark:text-red-400',
       bgColor: 'bg-red-100 dark:bg-red-900/20',
-      description: 'This month',
-      formatter: formatCurrency,
+      description: 'Bulan ini',
+      formatter: currencyFormatter,
     },
     {
-      title: 'Net Flow',
+      title: 'Tabungan',
       value: netFlow,
       icon: netFlow >= 0 ? ArrowUpIcon : ArrowDownIcon,
       color: netFlow >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400',
       bgColor: netFlow >= 0 ? 'bg-green-100 dark:bg-green-900/20' : 'bg-red-100 dark:bg-red-900/20',
-      description: 'Income - Expenses',
-      formatter: formatCurrency,
+      description: `${((netFlow / (totalIncome || 1)) * 100).toFixed(0)}% dari pemasukan`,
+      formatter: currencyFormatter,
     },
     {
-      title: 'Active Wallets',
+      title: 'Dompet Aktif',
       value: walletCount,
       icon: CreditCard,
       color: 'text-purple-600 dark:text-purple-400',
       bgColor: 'bg-purple-100 dark:bg-purple-900/20',
-      description: 'Managed wallets',
+      description: 'Dompet terkelola',
       formatter: (value: number) => value.toString(),
     },
   ];
 
   if (loading) {
     return (
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-5 gap-4">
         {cards.map((_, index) => (
           <Card key={index} className="animate-pulse">
             <CardHeader className="space-y-2">
@@ -86,27 +91,27 @@ const OverviewCards = ({
   }
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+    <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-5 gap-4">
       {cards.map((card) => {
         const Icon = card.icon;
         const formattedValue = card.formatter(Math.abs(card.value));
-        const displayValue = card.title === 'Net Flow' && card.value < 0 ? `-${formattedValue}` : formattedValue;
+        const displayValue = card.title === 'Tabungan' && card.value < 0 ? `-${formattedValue}` : formattedValue;
 
         return (
           <Card key={card.title} className="overflow-hidden">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">
+              <CardTitle className="text-sm font-medium truncate pr-2">
                 {card.title}
               </CardTitle>
-              <div className={cn('p-2 rounded-full', card.bgColor)}>
+              <div className={cn('p-2 rounded-full shrink-0', card.bgColor)}>
                 <Icon className={cn('h-4 w-4', card.color)} />
               </div>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">
+              <div className="text-2xl font-bold truncate">
                 {displayValue}
               </div>
-              <p className="text-xs text-muted-foreground mt-1">
+              <p className="text-xs text-muted-foreground mt-1 truncate">
                 {card.description}
               </p>
             </CardContent>

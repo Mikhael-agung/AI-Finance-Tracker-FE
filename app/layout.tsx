@@ -8,6 +8,10 @@ const inter = Inter({ subsets: ["latin"] });
 export const metadata: Metadata = {
   title: "FinanceFlow",
   description: "Track your finances, master your budget",
+  icons: {
+    icon: "/icons/icon.png",
+    apple: "/icons/icon.png"
+  },
 };
 
 export default function RootLayout({

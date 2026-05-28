@@ -25,7 +25,7 @@ pids
 *.seed
 *.pid.lock
 
-# Coverage directory used by tools like istanbul
+# Coverage
 coverage/
 *.lcov
 
@@ -33,19 +33,22 @@ coverage/
 logs
 *.log
 
-# Optional npm cache directory
+# npm
 .npm
-
-# Optional eslint cache
 .eslintcache
-
-# Output of 'npm pack'
 *.tgz
 
-# dotenv environment variable files
-.env.local
+# Environment files
 .env
+.env.local
 .env.production
+FE/.env
+FE/.env.local
+FE/.env.production
+BE/.env
+BE/.env.production
+!.env.example
+!.env.local.example
 
 # VSCode
 .vscode/*
@@ -54,11 +57,9 @@ logs
 !.vscode/launch.json
 !.vscode/extensions.json
 !.vscode/*.code-snippets
-
-# Local History for Visual Studio Code
 .history/
 
-# OS generated files
+# OS
 .DS_Store
 .DS_Store?
 ._*
@@ -68,13 +69,11 @@ ehthumbs.db
 Thumbs.db
 desktop.ini
 
-# Supabase locals (BE)
-BE/.env
+# Supabase
 BE/supabase/.temp
 BE/supabase/.wrangler
 
-# FE specific
-FE/.env.local
+# FE
 FE/.next
 FE/.vercel
 
@@ -91,44 +90,33 @@ __pycache__/
 *.swp
 *.swo
 
-# Temporary files
+# Temp
 *.tmp
 *.temp
-
-# System files
 *.sys
 *.dmp
-
-# Cache directories
 .cache/
 .temp/
 tmp/
 
-# BE specific (Node.js)
+# BE logs
 BE/logs/*.log
 BE/logs/*.json
 !BE/logs/.gitkeep
 
-# Database files (if any)
+# Database
 *.db
 *.sqlite
 *.sqlite3
 
-# Keys and certificates
+# Keys
 *.key
 *.crt
 *.csr
 *.p12
 *.pfx
-*.pem
 
 # Custom
 *.code-workspace
-
-# Environment files (keep example files)
-!.env.example
-!.env.local.example
-
-# Development data
 .seed/
 .migration/

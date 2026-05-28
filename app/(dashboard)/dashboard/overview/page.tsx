@@ -4,10 +4,10 @@ import { useEffect, useState, useCallback, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
-import { fetchTransactions, fetchRecentTransactions, fetchTransactionSummary, fetchSpendingByCategory } from '@/lib/api/transactions';
+import { fetchTransactions } from '@/lib/api/transactions';
 import { GmailTokenBanner } from '@/components/sync/GmailTokenBanner';
 import { SyncNotification, type SyncState } from '@/components/sync/SyncNotification';
-import { fetchWalletSummary } from '@/lib/api/wallets';
+// import { fetchWalletSummary } from '@/lib/api/wallets';
 import { Transaction } from '@/types/transaction.types';
 import { useRouter } from 'next/navigation';
 import { format, subDays, startOfMonth, eachDayOfInterval, eachWeekOfInterval, endOfWeek, parseISO } from 'date-fns';
@@ -20,8 +20,10 @@ import {
   Wallet, CalendarIcon, ReceiptText, Pencil, FileUp, ChevronDown,
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { formatCurrency } from '@/lib/utils/formatters';
+import { formatCurrency, formatCurrencyCompact } from '@/lib/utils/formatters';
+import { useMediaQuery } from '@/lib/hooks/useMediaQuery';
 import { api } from '@/lib/api/client';
+import { useDashboardStore } from '@/lib/store/dashboard.store';
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts';
 
 interface DashboardData {
@@ -122,14 +124,10 @@ const CustomTooltip = ({ active, payload }: any) => {
 export default function DashboardOverviewPage() {
   const router = useRouter();
   const [importModalOpen, setImportModalOpen] = useState(false);
-  const [data, setData] = useState<DashboardData>({
-    totalBalance: 0, totalIncome: 0, totalExpenses: 0, netFlow: 0,
-    walletCount: 0, totalTransactions: 0,
-    recentTransactions: [], spendingByCategory: [],
-  });
-  const [loading, setLoading] = useState(true);
+  const isCompact = !useMediaQuery('(min-width: 768px)');
+  const fmt = isCompact ? formatCurrencyCompact : formatCurrency;
   const [syncing, setSyncing] = useState(false);
-  const [lastSynced, setLastSynced] = useState<Date | null>(null);
+  const { data, loading, gmailStatus, lastSynced, fetchDashboard, setLastSynced, invalidate } = useDashboardStore();
   const [calendarOpen, setCalendarOpen] = useState(false);
   const [chartBars, setChartBars] = useState<ChartBar[]>([]);
   const [chartLoading, setChartLoading] = useState(false);
@@ -172,41 +170,6 @@ export default function DashboardOverviewPage() {
     }
   }, []);
 
-  const loadDashboardData = async () => {
-    setLoading(true);
-    try {
-      const [walletSummary, summary, recentTx, spending, monthlyCount] = await Promise.allSettled([
-        fetchWalletSummary(),
-        fetchTransactionSummary('month'),
-        fetchRecentTransactions(5),
-        fetchSpendingByCategory('month'),
-        fetchTransactions({
-          start_date: startOfMonth(new Date()).toISOString(),
-          end_date: new Date().toISOString(),
-          limit: 1,
-        }),
-      ]);
-      setData({
-        totalBalance: walletSummary.status === 'fulfilled' ? walletSummary.value.totalBalance : 0,
-        walletCount: walletSummary.status === 'fulfilled' ? walletSummary.value.walletCount : 0,
-        totalIncome: summary.status === 'fulfilled' ? summary.value.totalIncome : 0,
-        totalExpenses: summary.status === 'fulfilled' ? summary.value.totalExpenses : 0,
-        netFlow: summary.status === 'fulfilled' ? summary.value.netFlow : 0,
-        recentTransactions: recentTx.status === 'fulfilled' ? recentTx.value : [],
-        spendingByCategory: spending.status === 'fulfilled' ? spending.value : [],
-        totalTransactions: monthlyCount.status === 'fulfilled' ? monthlyCount.value.totalItems : 0,
-      });
-      try {
-        const syncStatus = await api.get<any>('/sync/status');
-        if (syncStatus.data?.last_sync) setLastSynced(new Date(syncStatus.data.last_sync));
-      } catch { }
-    } catch {
-      toast.error('Gagal memuat data dashboard');
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const handleSync = async () => {
     if (syncsUsed >= MAX_SYNCS) { setSyncState('limit_reached'); return; }
     setSyncing(true);
@@ -217,7 +180,7 @@ export default function DashboardOverviewPage() {
       setSyncsUsed((prev) => prev + 1);
       setLastSynced(new Date());
       setSyncState('success');
-      await loadDashboardData();
+      await fetchDashboard(true);
       await loadChartData(dateRange);
     } catch (err: any) {
       const msg = err?.message ?? '';
@@ -257,13 +220,12 @@ export default function DashboardOverviewPage() {
         ? { from: startOfMonth(new Date()), to: new Date() }
         : { from: subDays(new Date(), days), to: new Date() };
       setDateRange(range);
-      loadDashboardData();
       loadChartData(range);
     } else {
-      loadDashboardData();
       loadChartData(dateRange);
     }
-  }, []);
+    fetchDashboard();
+  }, []);;
 
   const savings = data.totalIncome - data.totalExpenses;
   const savingsPercent = data.totalIncome > 0 ? Math.round((savings / data.totalIncome) * 100) : 0;
@@ -347,7 +309,7 @@ export default function DashboardOverviewPage() {
         <div className="bg-white dark:bg-gray-900 p-4 md:p-6 rounded-xl border border-slate-200 dark:border-gray-800 shadow-sm">
           <p className="text-xs md:text-sm text-slate-500 font-semibold mb-1">Total Saldo</p>
           {loading ? <div className="h-7 w-20 bg-slate-100 animate-pulse rounded mb-2" /> : (
-            <h3 className="text-base md:text-2xl font-bold text-slate-900 dark:text-white mb-2">{formatCurrency(data.totalBalance)}</h3>
+            <h3 className="text-base md:text-2xl font-bold text-slate-900 dark:text-white mb-2">{fmt(data.totalBalance)}</h3>
           )}
           <div className="flex items-center gap-1 text-emerald-500 text-xs font-bold">
             <TrendingUp className="h-3 w-3" /><span>{data.walletCount} dompet aktif</span>
@@ -356,7 +318,7 @@ export default function DashboardOverviewPage() {
         <div className="bg-white dark:bg-gray-900 p-4 md:p-6 rounded-xl border border-slate-200 dark:border-gray-800 shadow-sm">
           <p className="text-xs md:text-sm text-slate-500 font-semibold mb-1">Pemasukan</p>
           {loading ? <div className="h-7 w-20 bg-slate-100 animate-pulse rounded mb-2" /> : (
-            <h3 className="text-base md:text-2xl font-bold text-slate-900 dark:text-white mb-2">{formatCurrency(data.totalIncome)}</h3>
+            <h3 className="text-base md:text-2xl font-bold text-slate-900 dark:text-white mb-2">{fmt(data.totalIncome)}</h3>
           )}
           <div className="flex items-center gap-1 text-emerald-500 text-xs font-bold">
             <TrendingUp className="h-3 w-3" /><span>Bulan ini</span>
@@ -365,7 +327,7 @@ export default function DashboardOverviewPage() {
         <div className="bg-white dark:bg-gray-900 p-4 md:p-6 rounded-xl border border-slate-200 dark:border-gray-800 shadow-sm">
           <p className="text-xs md:text-sm text-slate-500 font-semibold mb-1">Pengeluaran</p>
           {loading ? <div className="h-7 w-20 bg-slate-100 animate-pulse rounded mb-2" /> : (
-            <h3 className="text-base md:text-2xl font-bold text-slate-900 dark:text-white mb-2">{formatCurrency(data.totalExpenses)}</h3>
+            <h3 className="text-base md:text-2xl font-bold text-slate-900 dark:text-white mb-2">{fmt(data.totalExpenses)}</h3>
           )}
           <div className="flex items-center gap-1 text-rose-500 text-xs font-bold">
             <TrendingDown className="h-3 w-3" /><span>Bulan ini</span>
@@ -374,7 +336,7 @@ export default function DashboardOverviewPage() {
         <div className="bg-white dark:bg-gray-900 p-4 md:p-6 rounded-xl border border-slate-200 dark:border-gray-800 shadow-sm">
           <p className="text-xs md:text-sm text-slate-500 font-semibold mb-1">Tabungan</p>
           {loading ? <div className="h-7 w-20 bg-slate-100 animate-pulse rounded mb-2" /> : (
-            <h3 className="text-base md:text-2xl font-bold text-slate-900 dark:text-white mb-2">{formatCurrency(Math.max(0, savings))}</h3>
+            <h3 className="text-base md:text-2xl font-bold text-slate-900 dark:text-white mb-2">{fmt(Math.max(0, savings))}</h3>
           )}
           <div className="flex items-center gap-1 text-[#0da2e7] text-xs font-bold">
             <TrendingUp className="h-3 w-3" /><span>{savingsPercent}% dari pemasukan</span>
@@ -461,10 +423,10 @@ export default function DashboardOverviewPage() {
                 {chartBars.map((bar, i) => (
                   <div key={i} className="flex-1 min-w-6 text-center overflow-hidden">
                     <span className={`text-[9px] font-medium block truncate ${i === chartBars.length - 1
-                        ? 'text-[#0da2e7] font-bold'
-                        : bar.expense > 0
-                          ? 'text-slate-500 dark:text-slate-400'
-                          : 'text-slate-300 dark:text-slate-600'
+                      ? 'text-[#0da2e7] font-bold'
+                      : bar.expense > 0
+                        ? 'text-slate-500 dark:text-slate-400'
+                        : 'text-slate-300 dark:text-slate-600'
                       }`}>
                       {chartBars.length <= 10 || i % 2 === 0 || i === chartBars.length - 1 ? bar.label : ''}
                     </span>
@@ -479,9 +441,16 @@ export default function DashboardOverviewPage() {
         <div className="bg-white dark:bg-gray-900 p-6 rounded-xl border border-slate-200 dark:border-gray-800 shadow-sm flex flex-col">
           <div className="flex items-center justify-between mb-6">
             <h4 className="text-base font-bold text-slate-900 dark:text-white">Sinkronisasi Gmail</h4>
-            <div className="flex items-center gap-1 px-2 py-1 bg-emerald-50 text-emerald-600 rounded-md">
+            <div className={`flex items-center gap-1 px-2 py-1 rounded-md ${gmailStatus?.is_expired
+              ? 'bg-rose-50 text-rose-600'
+              : gmailStatus?.connected
+                ? 'bg-emerald-50 text-emerald-600'
+                : 'bg-slate-100 text-slate-500'
+              }`}>
               <CheckCircle2 className="h-3 w-3" />
-              <span className="text-[9px] font-bold uppercase tracking-wider">Terhubung</span>
+              <span className="text-[9px] font-bold uppercase tracking-wider">
+                {gmailStatus?.is_expired ? 'Expired' : gmailStatus?.connected ? 'Terhubung' : 'Tidak Aktif'}
+              </span>
             </div>
           </div>
           <div className="space-y-4">
@@ -501,7 +470,14 @@ export default function DashboardOverviewPage() {
               </div>
               <div>
                 <p className="text-[10px] text-slate-400 uppercase font-bold tracking-wider mb-1">Status</p>
-                <p className="text-sm font-bold text-emerald-500">Aktif</p>
+                <p className={`text-sm font-bold ${gmailStatus?.is_expired
+                  ? 'text-rose-500'
+                  : gmailStatus?.can_sync_now
+                    ? 'text-emerald-500'
+                    : 'text-slate-400'
+                  }`}>
+                  {gmailStatus?.is_expired ? 'Expired' : gmailStatus?.can_sync_now ? 'Aktif' : 'Tidak Aktif'}
+                </p>
               </div>
             </div>
           </div>
