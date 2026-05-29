@@ -4,6 +4,8 @@ import type { SupabaseClient } from '@supabase/supabase-js'
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
 // const BASE_URL = "/api/proxy";
 
+let isRedirecting = false;
+
 export type ApiResponse<T = any> = {
   success: boolean;
   data?: T;
@@ -161,7 +163,6 @@ class ApiClient {
       const response = await fetch(url, config);
       clearTimeout(timeoutId);
 
-      // CodeRabbit #1: handle 204 No Content tanpa .json()
       if (response.status === 204 || response.headers.get('content-length') === '0') {
         return { data: undefined as T };
       }
@@ -170,7 +171,14 @@ class ApiClient {
 
       if (!response.ok) {
         if (response.status === 401) {
-          throw new Error('Session expired. Please login again.');
+          this.cachedToken = null;
+          this.tokenExpiry = 0;
+          this.csrfToken = null;
+          this.csrfTokenExpiry = 0;
+          if (typeof window !== 'undefined' && !isRedirecting) {
+            isRedirecting = true;
+            window.location.href = '/login';
+          }
         }
         throw new Error(
           (raw as ApiError).error || `Request failed with status ${response.status}`

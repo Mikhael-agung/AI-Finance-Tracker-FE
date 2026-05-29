@@ -5,7 +5,7 @@ import { api } from '@/lib/api/client';
 import { startOfMonth } from 'date-fns';
 import type { Transaction } from '@/types/transaction.types';
 
-const CACHE_TTL = 5 * 60 * 1000; // 5 menit
+const CACHE_TTL = 35 * 60 * 1000; // 35 menit
 
 interface DashboardData {
     totalBalance: number;
@@ -52,9 +52,15 @@ export const useDashboardStore = create<DashboardStore>((set, get) => ({
     fetchDashboard: async (force = false) => {
         const { lastFetched, loading } = get();
         if (loading) return;
-        if (!force && lastFetched && Date.now() - lastFetched < CACHE_TTL) return; // cache hit
 
-        set({ loading: true });
+        const isStale = !lastFetched || Date.now() - lastFetched > CACHE_TTL;
+        const hasData = get().data.totalBalance !== 0 || get().data.recentTransactions.length > 0;
+
+        if ( !force && !isStale ) return; // cache hit
+        
+        const showLoading = force || !hasData;
+        if ( showLoading ) set({ loading: true });
+        
         try {
             const [walletSummary, summary, recentTx, spending, monthlyCount] = await Promise.allSettled([
                 fetchWalletSummary(),
