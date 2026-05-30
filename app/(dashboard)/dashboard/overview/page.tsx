@@ -4,10 +4,10 @@ import { useEffect, useState, useCallback, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
-import { fetchTransactions, fetchRecentTransactions, fetchTransactionSummary, fetchSpendingByCategory } from '@/lib/api/transactions';
+import { fetchTransactions } from '@/lib/api/transactions';
 import { GmailTokenBanner } from '@/components/sync/GmailTokenBanner';
 import { SyncNotification, type SyncState } from '@/components/sync/SyncNotification';
-import { fetchWalletSummary } from '@/lib/api/wallets';
+// import { fetchWalletSummary } from '@/lib/api/wallets';
 import { Transaction } from '@/types/transaction.types';
 import { useRouter } from 'next/navigation';
 import { format, subDays, startOfMonth, eachDayOfInterval, eachWeekOfInterval, endOfWeek, parseISO } from 'date-fns';
@@ -23,6 +23,7 @@ import { toast } from 'sonner';
 import { formatCurrency, formatCurrencyCompact } from '@/lib/utils/formatters';
 import { useMediaQuery } from '@/lib/hooks/useMediaQuery';
 import { api } from '@/lib/api/client';
+import { useDashboardStore } from '@/lib/store/dashboard.store';
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from 'recharts';
 
 interface DashboardData {
@@ -123,16 +124,10 @@ const CustomTooltip = ({ active, payload }: any) => {
 export default function DashboardOverviewPage() {
   const router = useRouter();
   const [importModalOpen, setImportModalOpen] = useState(false);
-  const [data, setData] = useState<DashboardData>({
-    totalBalance: 0, totalIncome: 0, totalExpenses: 0, netFlow: 0,
-    walletCount: 0, totalTransactions: 0,
-    recentTransactions: [], spendingByCategory: [],
-  });
   const isCompact = !useMediaQuery('(min-width: 768px)');
   const fmt = isCompact ? formatCurrencyCompact : formatCurrency;
-  const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
-  const [lastSynced, setLastSynced] = useState<Date | null>(null);
+  const { data, loading, gmailStatus, lastSynced, fetchDashboard, setLastSynced, invalidate } = useDashboardStore();
   const [calendarOpen, setCalendarOpen] = useState(false);
   const [chartBars, setChartBars] = useState<ChartBar[]>([]);
   const [chartLoading, setChartLoading] = useState(false);
@@ -147,11 +142,6 @@ export default function DashboardOverviewPage() {
   const [newTransactions, setNewTransactions] = useState(0);
   const [syncsUsed, setSyncsUsed] = useState(0);
   const MAX_SYNCS = 5;
-  const [gmailStatus, setGmailStatus] = useState<{
-    connected: boolean;
-    is_expired: boolean;
-    can_sync_now: boolean;
-  } | null>(null);
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -180,46 +170,6 @@ export default function DashboardOverviewPage() {
     }
   }, []);
 
-  const loadDashboardData = async () => {
-    setLoading(true);
-    try {
-      const [walletSummary, summary, recentTx, spending, monthlyCount] = await Promise.allSettled([
-        fetchWalletSummary(),
-        fetchTransactionSummary('month'),
-        fetchRecentTransactions(5),
-        fetchSpendingByCategory('month'),
-        fetchTransactions({
-          start_date: startOfMonth(new Date()).toISOString(),
-          end_date: new Date().toISOString(),
-          limit: 1,
-        }),
-      ]);
-      setData({
-        totalBalance: walletSummary.status === 'fulfilled' ? walletSummary.value.totalBalance : 0,
-        walletCount: walletSummary.status === 'fulfilled' ? walletSummary.value.walletCount : 0,
-        totalIncome: summary.status === 'fulfilled' ? summary.value.totalIncome : 0,
-        totalExpenses: summary.status === 'fulfilled' ? summary.value.totalExpenses : 0,
-        netFlow: summary.status === 'fulfilled' ? summary.value.netFlow : 0,
-        recentTransactions: recentTx.status === 'fulfilled' ? recentTx.value : [],
-        spendingByCategory: spending.status === 'fulfilled' ? spending.value : [],
-        totalTransactions: monthlyCount.status === 'fulfilled' ? monthlyCount.value.totalItems : 0,
-      });
-      try {
-        const syncStatus = await api.get<any>('/sync/status');
-        if (syncStatus.data?.last_sync) setLastSynced(new Date(syncStatus.data.last_sync));
-        setGmailStatus({
-          connected: syncStatus.data?.email_connected || false,
-          is_expired: syncStatus.data?.is_expired || false,
-          can_sync_now: syncStatus.data?.can_sync_now || false,
-        });
-      } catch { }
-    } catch {
-      toast.error('Gagal memuat data dashboard');
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const handleSync = async () => {
     if (syncsUsed >= MAX_SYNCS) { setSyncState('limit_reached'); return; }
     setSyncing(true);
@@ -230,7 +180,7 @@ export default function DashboardOverviewPage() {
       setSyncsUsed((prev) => prev + 1);
       setLastSynced(new Date());
       setSyncState('success');
-      await loadDashboardData();
+      await fetchDashboard(true);
       await loadChartData(dateRange);
     } catch (err: any) {
       const msg = err?.message ?? '';
@@ -270,13 +220,12 @@ export default function DashboardOverviewPage() {
         ? { from: startOfMonth(new Date()), to: new Date() }
         : { from: subDays(new Date(), days), to: new Date() };
       setDateRange(range);
-      loadDashboardData();
       loadChartData(range);
     } else {
-      loadDashboardData();
       loadChartData(dateRange);
     }
-  }, []);
+    fetchDashboard();
+  }, []);;
 
   const savings = data.totalIncome - data.totalExpenses;
   const savingsPercent = data.totalIncome > 0 ? Math.round((savings / data.totalIncome) * 100) : 0;
