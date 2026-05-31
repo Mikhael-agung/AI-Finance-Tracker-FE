@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { createBrowserClient } from "@/lib/supabase/client";
 import { syncApi } from "@/lib/api/sync";
 import { toast } from "sonner";
+import { TestConnectionResult } from "@/types";
 import { Mail, Loader2, CheckCircle, XCircle } from "lucide-react";
 
 interface GmailConnectProps {
@@ -50,10 +51,10 @@ export default function GmailConnect({
   const handleTestConnection = async () => {
     try {
       setIsTesting(true);
-      const result = await syncApi.testConnection();
+      const result = await syncApi.testConnection() as TestConnectionResult;
 
       if (result.success) {
-        toast.success(`Connected as ${result.data.email}`);
+        toast.success(`Connected as ${result.data?.email}`);
       } else {
         toast.error(result.error || "Connection test failed");
       }
