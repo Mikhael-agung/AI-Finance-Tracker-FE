@@ -15,12 +15,13 @@ import { Button } from "@/components/ui/button";
 import { syncApi } from "@/lib/api/sync";
 import { toast } from "sonner";
 import { RefreshCw } from "lucide-react";
+import { SyncStatus } from "@/types";
 
 export default function SyncSettingsPage() {
   const [isGmailConnected, setIsGmailConnected] = useState(false);
   const [gmailEmail, setGmailEmail] = useState("");
   const [isSyncing, setIsSyncing] = useState(false);
-  const [syncStatus, setSyncStatus] = useState<any>(null);
+  const [syncStatus, setSyncStatus] = useState<SyncStatus | null>(null);
 
   useEffect(() => {
     fetchSyncStatus();

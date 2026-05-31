@@ -2,6 +2,12 @@ import { Transaction } from './transaction.types';
 import { Wallet } from './wallet.types';
 import { Budget } from './budget.types';
 
+export interface ApiResponse<T> {
+  success: boolean;
+  data: T;
+  message?: string;
+}
+
 // Auth Types
 export interface UserProfile {
   id: string;
@@ -55,6 +61,10 @@ export interface SyncStatus {
   next_sync: string | null;
   email_connected: boolean;
   sync_count: number;
+  gmail?: {
+    email: string;
+    connected: boolean;
+  }
 }
 
 export interface SyncHistoryItem {
