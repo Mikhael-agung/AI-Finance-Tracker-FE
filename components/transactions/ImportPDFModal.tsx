@@ -203,7 +203,6 @@ export function ImportPDFModal({ open, onClose }: ImportPDFModalProps) {
             // toast.error(err instanceof Error ? err.message : 'Gagal preview PDF');
             const errormsg = err instanceof Error ? err.message : "Gagal preview PDF";
             if (errormsg.toLowerCase().includes("password")) {
-                setNeedsPassword(true);
                 setShowPasswordModal(true);
                 toast.warning("PDF dilindungi password. Masukkan password untuk melanjutkan.");
             } else {
