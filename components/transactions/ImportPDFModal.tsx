@@ -239,7 +239,7 @@ export function ImportPDFModal({ open, onClose }: ImportPDFModalProps) {
             setPdfPassword("");
             toast.success(`Ditemukan ${data?.total_found || 0} transaksi`);
         } catch (err: unknown) {
-            console.log ('PDF ERROR RAW:', err);
+            console.log('PDF ERROR RAW:', err);
             const errormsg = err instanceof Error ? err.message : "Gagal preview PDF";
             console.log('PDF ERROR MSG:', errormsg);
             if (errormsg.toLowerCase().includes("password")) {
@@ -790,7 +790,7 @@ export function ImportPDFModal({ open, onClose }: ImportPDFModalProps) {
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
-                    className="fixed inset-0 z-110 flex items-center justify-center p-4"
+                    className="fixed inset-0 z-[110] flex items-center justify-center p-4"
                     style={{
                         backgroundColor: "rgba(0,0,0,0.8)",
                         backdropFilter: "blur(4px)",
@@ -806,76 +806,109 @@ export function ImportPDFModal({ open, onClose }: ImportPDFModalProps) {
                         transition={{ type: "spring", damping: 25, stiffness: 300 }}
                         className="w-full max-w-2xl bg-[#0d1117] text-slate-200 rounded-2xl shadow-2xl border border-slate-800 flex flex-col max-h-[85vh]"
                     >
+                        {/* Header */}
                         <div className="p-5 border-b border-slate-800 bg-[#161b22] flex justify-between items-center shrink-0">
                             <div>
-                                <h3 className="text-lg font-bold text-white">
-                                    Semua Transaksi
-                                </h3>
+                                <h3 className="text-lg font-bold text-white">Semua Transaksi</h3>
                                 <p className="text-xs text-slate-400 mt-0.5">
                                     {previewTotal} transaksi ditemukan
+                                    {duplicateCount > 0 && (
+                                        <span className="text-yellow-400"> · {duplicateCount} duplikat</span>
+                                    )}
                                 </p>
                             </div>
-                            <button
-                                onClick={() => setExpandModal(false)}
-                                aria-label="Tutup"
-                                className="p-2 hover:bg-slate-800 rounded-full transition-colors"
-                            >
-                                <X className="h-5 w-5 text-slate-400" />
-                            </button>
+                            <div className="flex items-center gap-3">
+                                <button
+                                    onClick={() => setSelectedTxs(new Set(previewData!.map((_, i) => i)))}
+                                    className="text-[10px] text-[#0da2e7] hover:underline font-bold"
+                                >
+                                    Pilih Semua
+                                </button>
+                                <button
+                                    onClick={() => setSelectedTxs(new Set(
+                                        previewData!.map((tx, i) => tx.is_duplicate ? null : i).filter((i): i is number => i !== null)
+                                    ))}
+                                    className="text-[10px] text-slate-400 hover:underline"
+                                >
+                                    Non-Duplikat
+                                </button>
+                                <button
+                                    onClick={() => setSelectedTxs(new Set())}
+                                    className="text-[10px] text-slate-400 hover:underline"
+                                >
+                                    Hapus Semua
+                                </button>
+                                <button
+                                    onClick={() => setExpandModal(false)}
+                                    aria-label="Tutup"
+                                    className="p-2 hover:bg-slate-800 rounded-full transition-colors ml-2"
+                                >
+                                    <X className="h-5 w-5 text-slate-400" />
+                                </button>
+                            </div>
                         </div>
+
+                        {/* Table Header */}
+                        <div className="grid grid-cols-12 gap-2 px-5 py-2 border-b border-slate-800 shrink-0">
+                            <p className="col-span-1"></p>
+                            <p className="col-span-2 text-[10px] font-bold text-slate-500 uppercase">Tanggal</p>
+                            <p className="col-span-4 text-[10px] font-bold text-slate-500 uppercase">Merchant</p>
+                            <p className="col-span-2 text-[10px] font-bold text-slate-500 uppercase text-center">Tipe</p>
+                            <p className="col-span-3 text-[10px] font-bold text-slate-500 uppercase text-right">Nominal</p>
+                        </div>
+
+                        {/* List */}
                         <div className="overflow-y-auto flex-1 p-4 space-y-1 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
-                            <div className="grid grid-cols-12 gap-2 px-3 py-1.5">
-                                <p className="col-span-2 text-[10px] font-bold text-slate-500 uppercase">
-                                    Tanggal
-                                </p>
-                                <p className="col-span-5 text-[10px] font-bold text-slate-500 uppercase">
-                                    Merchant
-                                </p>
-                                <p className="col-span-2 text-[10px] font-bold text-slate-500 uppercase text-center">
-                                    Tipe
-                                </p>
-                                <p className="col-span-3 text-[10px] font-bold text-slate-500 uppercase text-right">
-                                    Nominal
-                                </p>
-                            </div>
                             {previewData?.map((tx, i) => (
                                 <motion.div
                                     key={`expand-${i}`}
                                     initial={{ opacity: 0, x: -10 }}
                                     animate={{ opacity: 1, x: 0 }}
                                     transition={{ delay: i * 0.01 }}
-                                    className="grid grid-cols-12 gap-2 items-center px-3 py-2.5 bg-slate-800/50 rounded-lg hover:bg-slate-800 transition-colors"
+                                    className={`grid grid-cols-12 gap-2 items-center px-3 py-2.5 rounded-lg transition-colors
+                            ${tx.is_duplicate ? 'bg-yellow-500/5 border border-yellow-500/20' : 'bg-slate-800/50 hover:bg-slate-800'}
+                            ${!selectedTxs.has(i) ? 'opacity-50' : ''}
+                        `}
                                 >
-                                    <div className="col-span-2">
+                                    {/* Checkbox */}
+                                    <div className="col-span-1 flex justify-center">
+                                        <input
+                                            type="checkbox"
+                                            checked={selectedTxs.has(i)}
+                                            onChange={(e) => {
+                                                const next = new Set(selectedTxs);
+                                                e.target.checked ? next.add(i) : next.delete(i);
+                                                setSelectedTxs(next);
+                                            }}
+                                            aria-label={`Pilih transaksi ${tx.merchant}`}
+                                            className="w-3.5 h-3.5 rounded border-slate-600 accent-[#0da2e7] cursor-pointer"
+                                        />
+                                    </div>
+                                    {/* Tanggal */}
+                                    <div className="col-span-2 min-w-0">
                                         <p className="text-[10px] text-slate-300 font-medium">
-                                            {new Date(tx.date).toLocaleDateString("id-ID", {
-                                                day: "numeric",
-                                                month: "short",
-                                            })}
+                                            {new Date(tx.date).toLocaleDateString("id-ID", { day: "numeric", month: "short" })}
                                         </p>
-                                        <p className="text-[9px] text-slate-500">
-                                            {new Date(tx.date).getFullYear()}
-                                        </p>
+                                        <p className="text-[9px] text-slate-500">{new Date(tx.date).getFullYear()}</p>
                                     </div>
-                                    <div className="col-span-5 min-w-0">
-                                        <p className="text-xs font-bold text-white truncate">
-                                            {tx.merchant}
-                                        </p>
-                                        <p className="text-[9px] text-slate-500 truncate">
-                                            {tx.description}
-                                        </p>
+                                    {/* Merchant */}
+                                    <div className="col-span-4 min-w-0">
+                                        <p className="text-xs font-bold text-white truncate">{tx.merchant}</p>
+                                        {tx.is_duplicate ? (
+                                            <span className="text-[9px] text-yellow-400 font-bold">⚠ Duplikat</span>
+                                        ) : (
+                                            <p className="text-[9px] text-slate-500 truncate">{tx.description}</p>
+                                        )}
                                     </div>
+                                    {/* Tipe */}
                                     <div className="col-span-2 flex justify-center">
-                                        <span
-                                            className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full ${tx.type === "income" ? "bg-emerald-500/20 text-emerald-400" : "bg-rose-500/20 text-rose-400"}`}
-                                        >
+                                        <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full ${tx.type === "income" ? "bg-emerald-500/20 text-emerald-400" : "bg-rose-500/20 text-rose-400"}`}>
                                             {tx.type === "income" ? "Masuk" : "Keluar"}
                                         </span>
                                     </div>
+                                    {/* Nominal */}
                                     <div className="col-span-3 text-right">
-                                        <p
-                                            className={`text-xs font-bold ${tx.type === "income" ? "text-emerald-400" : "text-rose-400"}`}
-                                        >
+                                        <p className={`text-xs font-bold ${tx.type === "income" ? "text-emerald-400" : "text-rose-400"}`}>
                                             {tx.type === "expense" ? "-" : "+"}
                                             {formatCurrency(tx.amount)}
                                         </p>
