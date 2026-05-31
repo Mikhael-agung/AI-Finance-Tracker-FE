@@ -180,9 +180,10 @@ class ApiClient {
             window.location.href = '/login';
           }
         }
-        throw new Error(
-          (raw as ApiError).error || `Request failed with status ${response.status}`
-        );
+        const rawAny = raw as any;
+        const errorMessage = ( typeof rawAny.error === 'string' ? rawAny.error : null ) || rawAny.message || rawAny.error?.message || 'Request failed with status ${response.status}';
+
+        throw new Error(errorMessage);
       }
 
       if ((raw as ApiResponse<T>).success === false) {
