@@ -233,7 +233,7 @@ export function ImportPDFModal({ open, onClose }: ImportPDFModalProps) {
             );
             setSelectedTxs(nonDupIndexes);
             if (!selectedBank && data?.bank) setSelectedBank(data.bank as BankType);
-            setShowPassword(false);
+            setShowPasswordModal(false);
             setPdfPassword("");
             toast.success(`Ditemukan ${data?.total_found || 0} transaksi`);
         } catch (err: unknown) {
