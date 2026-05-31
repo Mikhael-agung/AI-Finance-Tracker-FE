@@ -240,7 +240,9 @@ export function ImportPDFModal({ open, onClose }: ImportPDFModalProps) {
             setPdfPassword("");
             toast.success(`Ditemukan ${data?.total_found || 0} transaksi`);
         } catch (err: unknown) {
+            console.log ('PDF ERROR RAW:', err);
             const errormsg = err instanceof Error ? err.message : "Gagal preview PDF";
+            console.log('PDF ERROR MSG:', errormsg);
             if (errormsg.toLowerCase().includes("password")) {
                 setPasswordError(true);
                 setTimeout(() => setPasswordError(false), 5000);
