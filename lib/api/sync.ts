@@ -1,8 +1,7 @@
-// lib/api/sync.ts
 import { api } from './client';
+import { ApiResponse, SyncStatus } from '@/types';
 
 export const syncApi = {
-  // STORE GOOGLE TOKEN (DIPANGGIL DARI CALLBACK)
   storeGoogleToken: async (data: {
     google_token: string;
     google_refresh_token?: string;
@@ -13,26 +12,22 @@ export const syncApi = {
     return result;
   },
 
-  // TRIGGER MANUAL SYNC
-  triggerSync: async () => {
+  triggerSync: async (): Promise<ApiResponse<{ created: number }>> => {
     api.invalidateCsrf();
     const { data } = await api.post('/sync/trigger');
-    return data;
+    return data as ApiResponse<{ created: number }>;
   },
 
-  // GET SYNC STATUS
-  getSyncStatus: async () => {
+  getSyncStatus: async (): Promise<ApiResponse<SyncStatus>> => {
     const { data } = await api.get('/sync/status');
-    return data;
+    return data as ApiResponse<SyncStatus>;
   },
 
-  // TEST GMAIL CONNECTION
   testConnection: async () => {
     const { data } = await api.get('/sync/test');
     return data;
   },
 
-  // DISCONNECT GMAIL
   disconnectGmail: async () => {
     api.invalidateCsrf();
     const { data } = await api.post('/auth/disconnect-gmail');
