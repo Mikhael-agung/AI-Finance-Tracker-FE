@@ -8,6 +8,14 @@ export interface ApiResponse<T> {
   message?: string;
 }
 
+export interface TestConnectionResult {
+  success: boolean;
+  data?: {
+    email: string;
+  };
+  error?: string;
+}
+
 // Auth Types
 export interface UserProfile {
   id: string;
