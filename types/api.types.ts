@@ -101,6 +101,7 @@ export interface TransactionFilters {
   wallet_id?: string;
   type?: 'income' | 'expense' | 'transfer';
   category?: string;
+  source?: 'email' | 'pdf_import' | 'manual';
   start_date?: string;
   end_date?: string;
   min_amount?: number;
