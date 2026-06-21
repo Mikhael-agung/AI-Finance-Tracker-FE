@@ -1,4 +1,4 @@
-export type TransactionSource = 'gmail' | 'pdf' | 'manual';
+export type TransactionSource = 'email' | 'pdf_import' | 'manual';
 
 export interface Transaction {
   id: string;
