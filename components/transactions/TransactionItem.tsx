@@ -11,18 +11,19 @@ interface TransactionItemProps {
 }
 
 const SOURCE_BADGE_STYLES: Record<string, string> = {
-  gmail: 'bg-destructive/10 text-destructive border-destructive/20',
-  pdf: 'bg-[oklch(0.75_0.18_60_/_0.1)] text-[oklch(0.55_0.18_60)] border-[oklch(0.75_0.18_60_/_0.2)] dark:text-[oklch(0.78_0.18_60)]',
+  email: 'bg-destructive/10 text-destructive border-destructive/20',
+  pdf_import: 'bg-[oklch(0.75_0.18_60_/_0.1)] text-[oklch(0.55_0.18_60)] border-[oklch(0.75_0.18_60_/_0.2)] dark:text-[oklch(0.78_0.18_60)]',
   manual: 'bg-muted text-muted-foreground border-border',
 };
 
 const SOURCE_LABELS: Record<string, string> = {
-  gmail: 'Gmail',
-  pdf: 'PDF',
+  email: 'Gmail',
+  pdf_import: 'PDF',
   manual: 'Manual',
 };
 
 function SourceBadge({ source }: { source: string }) {
+  if (!source) return null;
   const style = SOURCE_BADGE_STYLES[source] ?? SOURCE_BADGE_STYLES.manual;
   const label = SOURCE_LABELS[source] ?? source;
   return (
@@ -55,8 +56,8 @@ export function TransactionItem({ transaction }: TransactionItemProps) {
   const amountColor = isIncome
     ? 'text-[var(--chart-3)]'
     : isExpense
-    ? 'text-destructive'
-    : 'text-foreground';
+      ? 'text-destructive'
+      : 'text-foreground';
 
   const amountPrefix = isIncome ? '+' : isExpense ? '-' : '';
 
