@@ -32,6 +32,7 @@ export async function fetchTransactions(
   if (filters?.wallet_id) query.wallet_id = filters.wallet_id;
   if (filters?.type) query.type = filters.type;
   if (filters?.category) query.category = filters.category;
+  if (filters?.source) query.source = filters.source; // <-- FIX: baris ini yang hilang
   if (filters?.start_date) query.start_date = filters.start_date;
   if (filters?.end_date) query.end_date = filters.end_date;
   if (filters?.min_amount) query.min_amount = filters.min_amount;
