@@ -16,8 +16,8 @@ const TYPE_OPTIONS = [
 
 const SOURCE_OPTIONS = [
   { value: '', label: 'Semua Sumber' },
-  { value: 'gmail', label: 'Gmail' },
-  { value: 'pdf', label: 'PDF' },
+  { value: 'email', label: 'Gmail' },
+  { value: 'pdf_import', label: 'PDF' },
   { value: 'manual', label: 'Manual' },
 ];
 
