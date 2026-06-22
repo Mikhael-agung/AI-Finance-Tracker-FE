@@ -47,7 +47,7 @@ export function TransactionSummary() {
     ];
 
     return (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3">
             {cards.map((card) => (
                 <Card key={card.label} className="border-border">
                     <CardContent className="p-5 flex flex-col gap-3">
@@ -61,7 +61,7 @@ export function TransactionSummary() {
                             {summaryLoading && card.label !== 'Jumlah Transaksi' ? (
                                 <Skeleton className="h-7 w-28 mt-1.5" />
                             ) : (
-                                <h3 className={`text-2xl font-bold mt-1 ${card.textClass}`}>{card.value}</h3>
+                                <h3 className={`text-lg sm:text-2xl font-bold mt-1 ${card.textClass}`}>{card.value}</h3>
                             )}
                         </div>
                     </CardContent>
