@@ -46,10 +46,10 @@ export function TransactionTable() {
               <TableHead className="text-xs font-bold uppercase tracking-widest">
                 Deskripsi
               </TableHead>
-              <TableHead className="text-xs font-bold uppercase tracking-widest">
+              <TableHead className="hidden sm:table-cell text-xs font-bold uppercase tracking-widest">
                 Kategori
               </TableHead>
-              <TableHead className="text-xs font-bold uppercase tracking-widest">
+              <TableHead className="hidden sm:table-cell text-xs font-bold uppercase tracking-widest">
                 Dompet
               </TableHead>
               <TableHead className="text-xs font-bold uppercase tracking-widest text-right">
