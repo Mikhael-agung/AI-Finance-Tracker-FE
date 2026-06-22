@@ -5,9 +5,7 @@ import { X, TrendingUp, TrendingDown, ArrowLeftRight, Pencil, Trash2, Save, Ban 
 import type { Transaction } from '@/types/transaction.types';
 import { formatCurrency } from '@/lib/utils/formatters';
 
-// ---------------------------------------------------------------------------
 // Types
-// ---------------------------------------------------------------------------
 
 interface TransactionDetailModalProps {
     transaction: Transaction;
@@ -16,9 +14,7 @@ interface TransactionDetailModalProps {
     onSave?: (id: string, updates: Partial<Transaction>) => Promise<void>;
 }
 
-// ---------------------------------------------------------------------------
 // Helpers
-// ---------------------------------------------------------------------------
 
 const SOURCE_LABELS: Record<string, string> = {
     email: 'Gmail',
@@ -89,10 +85,7 @@ function DetailRow({ label, children }: { label: string; children: React.ReactNo
     );
 }
 
-// ---------------------------------------------------------------------------
 // View Mode
-// ---------------------------------------------------------------------------
-
 function ViewMode({
     transaction,
     onEdit,
@@ -227,10 +220,7 @@ function ViewMode({
     );
 }
 
-// ---------------------------------------------------------------------------
 // Edit Mode
-// ---------------------------------------------------------------------------
-
 function EditMode({
     transaction,
     onCancel,
@@ -385,9 +375,7 @@ function EditMode({
     );
 }
 
-// ---------------------------------------------------------------------------
 // Main component
-// ---------------------------------------------------------------------------
 
 export function TransactionDetailModal({
     transaction,
