@@ -46,10 +46,10 @@ export function TransactionTable() {
               <TableHead className="text-xs font-bold uppercase tracking-widest">
                 Deskripsi
               </TableHead>
-              <TableHead className="text-xs font-bold uppercase tracking-widest">
+              <TableHead className="hidden sm:table-cell text-xs font-bold uppercase tracking-widest">
                 Kategori
               </TableHead>
-              <TableHead className="text-xs font-bold uppercase tracking-widest">
+              <TableHead className="hidden sm:table-cell text-xs font-bold uppercase tracking-widest">
                 Dompet
               </TableHead>
               <TableHead className="text-xs font-bold uppercase tracking-widest text-right">
@@ -61,10 +61,10 @@ export function TransactionTable() {
             {loading &&
               Array.from({ length: 8 }).map((_, i) => (
                 <TableRow key={i}>
+                  <TableCellSkeleton width="w-16" />
+                  <TableCellSkeleton width="w-36" />
                   <TableCellSkeleton width="w-20" />
-                  <TableCellSkeleton width="w-48" />
                   <TableCellSkeleton width="w-20" />
-                  <TableCellSkeleton width="w-24" />
                   <TableCellSkeleton width="w-16" align="right" />
                 </TableRow>
               ))}
@@ -154,9 +154,11 @@ export function TransactionTable() {
 function TableCellSkeleton({
   width,
   align = "left",
+  className = "",
 }: {
   width: string;
   align?: "left" | "right";
+  className?: string;
 }) {
   return (
     <td className="p-4">

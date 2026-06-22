@@ -63,30 +63,30 @@ export function TransactionItem({ transaction }: TransactionItemProps) {
 
   return (
     <TableRow className="hover:bg-muted/40 transition-colors">
-      <TableCell className="text-sm text-muted-foreground font-medium whitespace-nowrap">
+      <TableCell className="text-xs text-muted-foreground font-medium whitespace-nowrap px-3 py-2.5">
         {formatDate(transaction.transaction_date)}
       </TableCell>
 
-      <TableCell>
-        <div className="flex items-start gap-3">
+      <TableCell className="px-3 py-2.5">
+        <div className="flex items-start gap-2">
           <div className="mt-0.5 shrink-0">
             <TypeIcon type={transaction.type} />
           </div>
-          <div className="flex flex-col gap-1.5">
-            <span className="text-sm font-semibold text-foreground">
+          <div className="flex flex-col gap-1">
+            <span className="text-xs font-semibold text-foreground leading-snug">
               {transaction.description}
             </span>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5 flex-wrap">
               <SourceBadge source={transaction.source} />
               {transaction.bank && (
-                <span className="text-xs text-muted-foreground italic">{transaction.bank}</span>
+                <span className="text-[10px] text-muted-foreground italic">{transaction.bank}</span>
               )}
             </div>
           </div>
         </div>
       </TableCell>
 
-      <TableCell>
+      <TableCell className="hidden sm:table-cell px-3 py-2.5">
         {transaction.category ? (
           <span className="px-2.5 py-1 bg-secondary text-secondary-foreground text-[10px] font-bold uppercase rounded-full tracking-wider">
             {transaction.category}
@@ -96,11 +96,11 @@ export function TransactionItem({ transaction }: TransactionItemProps) {
         )}
       </TableCell>
 
-      <TableCell className="text-sm text-muted-foreground italic whitespace-nowrap">
+      <TableCell className="hidden sm:table-cell text-xs text-muted-foreground italic whitespace-nowrap px-3 py-2.5">
         {transaction.wallet_name ?? '-'}
       </TableCell>
 
-      <TableCell className={`text-sm font-bold text-right whitespace-nowrap ${amountColor}`}>
+      <TableCell className={`text-xs font-bold text-right whitespace-nowrap px-3 py-2.5 ${amountColor}`}>
         {amountPrefix}
         {formatCurrency(transaction.amount, transaction.currency)}
       </TableCell>
