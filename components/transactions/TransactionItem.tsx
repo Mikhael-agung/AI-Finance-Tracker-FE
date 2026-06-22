@@ -5,9 +5,11 @@ import { Badge } from '@/components/ui/badge';
 import { TableRow, TableCell } from '@/components/ui/table';
 import type { Transaction } from '@/types/transaction.types';
 import { formatCurrency } from '@/lib/utils/formatters';
+import { useState } from 'react';
 
 interface TransactionItemProps {
   transaction: Transaction;
+  onClick?: () => void;
 }
 
 const SOURCE_BADGE_STYLES: Record<string, string> = {
@@ -49,9 +51,10 @@ function formatDate(dateString: string) {
   });
 }
 
-export function TransactionItem({ transaction }: TransactionItemProps) {
+export function TransactionItem({ transaction, onClick }: TransactionItemProps) {
   const isIncome = transaction.type === 'income';
   const isExpense = transaction.type === 'expense';
+
 
   const amountColor = isIncome
     ? 'text-[var(--chart-3)]'
@@ -62,7 +65,7 @@ export function TransactionItem({ transaction }: TransactionItemProps) {
   const amountPrefix = isIncome ? '+' : isExpense ? '-' : '';
 
   return (
-    <TableRow className="hover:bg-muted/40 transition-colors">
+    <TableRow className="hover:bg-muted/40 transition-colors cursor-pointer" onClick={onClick}>
       <TableCell className="text-xs text-muted-foreground font-medium whitespace-nowrap px-3 py-2.5">
         {formatDate(transaction.transaction_date)}
       </TableCell>
