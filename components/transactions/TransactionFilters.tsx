@@ -77,7 +77,7 @@ export function TransactionFilters() {
     <div className="bg-card border border-border rounded-2xl p-5 shadow-sm">
       <div className="flex flex-wrap items-center gap-3">
         {/* Search */}
-        <div className="flex-1 min-w-[200px] relative">
+        <div className="w-full sm:flex-1 sm:min-w-[200px] relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
             value={searchInput}
@@ -92,7 +92,7 @@ export function TransactionFilters() {
           value={searchParams.get('type') ?? ''}
           onChange={(e) => updateParam('type', e.target.value)}
           aria-label="Filter tipe transaksi"
-          className="h-9 min-w-[150px] rounded-md border border-input bg-background px-3 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+          className="h-9 w-full sm:w-auto sm:min-w-[140px] rounded-md border border-input bg-background px-3 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
         >
           {TYPE_OPTIONS.map((opt) => (
             <option key={opt.value} value={opt.value}>
@@ -106,7 +106,7 @@ export function TransactionFilters() {
           value={searchParams.get('source') ?? ''}
           onChange={(e) => updateParam('source', e.target.value)}
           aria-label="Filter sumber transaksi"
-          className="h-9 min-w-[150px] rounded-md border border-input bg-background px-3 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+          className="h-9 w-full sm:w-auto sm:min-w-[140px] rounded-md border border-input bg-background px-3 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
         >
           {SOURCE_OPTIONS.map((opt) => (
             <option key={opt.value} value={opt.value}>
@@ -120,7 +120,7 @@ export function TransactionFilters() {
           value={searchParams.get('wallet_id') ?? ''}
           onChange={(e) => updateParam('wallet_id', e.target.value)}
           aria-label="Filter dompet"
-          className="h-9 min-w-[150px] rounded-md border border-input bg-background px-3 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
+          className="h-9 w-full sm:w-auto sm:min-w-[140px] rounded-md border border-input bg-background px-3 text-sm text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
         >
           <option value="">Semua Dompet</option>
           {wallets.map((w) => (
