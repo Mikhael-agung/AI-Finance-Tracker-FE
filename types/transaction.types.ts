@@ -1,3 +1,5 @@
+export type TransactionSource = 'email' | 'pdf_import' | 'manual';
+
 export interface Transaction {
   id: string;
   description: string;
@@ -15,6 +17,13 @@ export interface Transaction {
   is_recurring?: boolean;
   recurring_interval?: string;
   currency: string;
-  status: 'pending' | 'completed' | 'cancelled';
+  status: 'verified' | 'pending' | 'corrected' | 'flagged' | 'recurring' | 'duplicate';
   metadata?: Record<string, any>;
+
+  // Kolom dari Supabase yang belum ada di type lama
+  source: TransactionSource;
+  bank?: string;
+  merchant_name?: string;
+  category_id?: string;
+  email_id?: string;
 }
