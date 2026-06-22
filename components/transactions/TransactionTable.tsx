@@ -14,8 +14,9 @@ import { Skeleton } from "@/components/ui/skeleton";
 import EmptyState from "@/components/shared/EmptyState";
 import { TransactionItem } from "./TransactionItem";
 import { useTransactionStore } from "@/lib/store/transaction.store";
+import { Transaction } from "@/types/transaction.types";
 
-export function TransactionTable() {
+export function TransactionTable({ onRowClick }: { onRowClick?: (tx: Transaction) => void }) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -71,7 +72,11 @@ export function TransactionTable() {
 
             {!loading &&
               transactions.map((tx) => (
-                <TransactionItem key={tx.id} transaction={tx} />
+                <TransactionItem
+                  key={tx.id}
+                  transaction={tx}
+                  onClick={() => onRowClick?.(tx)}
+                />
               ))}
           </TableBody>
         </Table>
@@ -124,11 +129,10 @@ export function TransactionTable() {
                   <button
                     key={p}
                     onClick={() => goToPage(p as number)}
-                    className={`w-8 h-8 flex items-center justify-center rounded-lg text-[11px] font-bold transition-colors ${
-                      p === page
+                    className={`w-8 h-8 flex items-center justify-center rounded-lg text-[11px] font-bold transition-colors ${p === page
                         ? "bg-primary text-primary-foreground"
                         : "text-muted-foreground hover:bg-muted"
-                    }`}
+                      }`}
                   >
                     {p}
                   </button>
