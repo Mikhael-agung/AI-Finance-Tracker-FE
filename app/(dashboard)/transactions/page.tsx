@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -8,8 +8,10 @@ import { TransactionSummary } from '@/components/transactions/TransactionSummary
 import { TransactionFilters } from '@/components/transactions/TransactionFilters';
 import { TransactionTable } from '@/components/transactions/TransactionTable';
 import { TransactionExportMenu } from '@/components/transactions/TransactionExportMenu';
+import { TransactionDetailModal } from '@/components/transactions/TransactionDetailModal';
 import { useTransactionStore } from '@/lib/store/transaction.store';
 import type { TransactionFilters as TransactionFiltersType } from '@/types/api.types';
+import type { Transaction } from '@/types/transaction.types';
 
 function parseSearchParams(searchParams: URLSearchParams): TransactionFiltersType {
   const filters: TransactionFiltersType = {
@@ -36,6 +38,9 @@ export default function TransactionsPage() {
 
   const fetchTransactions = useTransactionStore((s) => s.fetchTransactions);
   const fetchSummary = useTransactionStore((s) => s.fetchSummary);
+
+  // ← TAMBAH INI
+  const [selectedTx, setSelectedTx] = useState<Transaction | null>(null);
 
   useEffect(() => {
     const filters = parseSearchParams(searchParams);
@@ -70,7 +75,25 @@ export default function TransactionsPage() {
 
       <TransactionSummary />
       <TransactionFilters />
-      <TransactionTable />
+
+      {/* ← TAMBAH onRowClick */}
+      <TransactionTable onRowClick={(tx) => setSelectedTx(tx)} />
+
+      {/* ← TAMBAH MODAL */}
+      {selectedTx && (
+        <TransactionDetailModal
+          transaction={selectedTx}
+          onClose={() => setSelectedTx(null)}
+          onDelete={(id) => {
+            // logic delete — disambungin ke BE nanti
+            setSelectedTx(null);
+          }}
+          onSave={async (id, updates) => {
+            // logic save — disambungin ke BE nanti
+            setSelectedTx(null);
+          }}
+        />
+      )}
     </div>
   );
 }
