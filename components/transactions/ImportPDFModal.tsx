@@ -271,6 +271,11 @@ export function ImportPDFModal({ open, onClose }: ImportPDFModalProps) {
             formData.append("wallet_id", selectedWallet);
             if (selectedBank) formData.append("bank_type", selectedBank);
             if (pdfPassword) formData.append("pdf_password", pdfPassword);
+            if (previewData && previewData.length > 0) {
+                const selectedTransactions = previewData.filter((_, i) => selectedTxs.has(i));
+                formData.append("selected_transactions", JSON.stringify(selectedTransactions));
+            }
+
             const result = await api.post<{ data: ImportResponse }>(
                 "/import/pdf",
                 formData,
