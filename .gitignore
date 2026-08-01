@@ -90,6 +90,10 @@ __pycache__/
 *.swp
 *.swo
 
+# Installers
+*.exe
+mt5setup.exe
+
 # Temp
 *.tmp
 *.temp
