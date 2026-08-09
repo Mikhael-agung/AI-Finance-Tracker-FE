@@ -94,10 +94,12 @@ export default function TransactionsPage() {
               await deleteTransaction(id);
               setSelectedTx(null);
               fetchSummary('month');
+              toast.success('Transaksi berhasil dihapus');
             } catch (err) {
-              setDeleteError(
-                err instanceof Error ? err.message : 'Gagal menghapus transaksi. Silakan coba lagi.',
-              );
+              const message = err instanceof Error ? err.message : 'Gagal menghapus transaksi.';
+              setDeleteError(message);
+              toast.error(message);
+              throw err;
             }
           }}
           onSave={async (id, updates) => {
