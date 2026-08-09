@@ -12,6 +12,7 @@ import { TransactionDetailModal } from '@/components/transactions/TransactionDet
 import { useTransactionStore } from '@/lib/store/transaction.store';
 import type { TransactionFilters as TransactionFiltersType } from '@/types/api.types';
 import type { Transaction } from '@/types/transaction.types';
+import { toast } from 'sonner';
 
 function parseSearchParams(searchParams: URLSearchParams): TransactionFiltersType {
   const filters: TransactionFiltersType = {
@@ -38,9 +39,12 @@ export default function TransactionsPage() {
 
   const fetchTransactions = useTransactionStore((s) => s.fetchTransactions);
   const fetchSummary = useTransactionStore((s) => s.fetchSummary);
+  const deleteTransaction = useTransactionStore((s) => s.deleteTransaction);
+  const fetchSummaryAgain = useTransactionStore((s) => s.fetchSummary);
+  const updateTransaction = useTransactionStore((s) => s.updateTransaction);
 
-  // ← TAMBAH INI
   const [selectedTx, setSelectedTx] = useState<Transaction | null>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
 
   useEffect(() => {
     const filters = parseSearchParams(searchParams);
@@ -84,13 +88,29 @@ export default function TransactionsPage() {
         <TransactionDetailModal
           transaction={selectedTx}
           onClose={() => setSelectedTx(null)}
-          onDelete={(id) => {
-            // logic delete — disambungin ke BE nanti
-            setSelectedTx(null);
+          onDelete={async (id) => {
+            setDeleteError(null);
+            try {
+              await deleteTransaction(id);
+              setSelectedTx(null);
+              fetchSummary('month');
+            } catch (err) {
+              setDeleteError(
+                err instanceof Error ? err.message : 'Gagal menghapus transaksi. Silakan coba lagi.',
+              );
+            }
           }}
           onSave={async (id, updates) => {
-            // logic save — disambungin ke BE nanti
-            setSelectedTx(null);
+            try {
+              await updateTransaction(id, updates);
+              setSelectedTx(null);
+              fetchSummary('month');
+              toast.success('Transaksi berhasil diperbarui');
+            } catch (err) {
+              const message = err instanceof Error ? err.message : 'Gagal memperbarui transaksi.';
+              toast.error(message);
+              throw err;
+            }
           }}
         />
       )}
