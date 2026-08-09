@@ -3,6 +3,8 @@ import { api } from '@/lib/api/client';
 import {
     fetchTransactions,
     fetchTransactionSummary,
+    deleteTransaction as deleteTransactionAPI,
+    updateTransaction as updateTransactionAPI,
 } from '@/lib/api/transactions';
 import type { Transaction } from '@/types/transaction.types';
 import type { TransactionFilters } from '@/types/api.types';
@@ -39,6 +41,8 @@ interface TransactionStoreState {
     fetchTransactions: (filters: TransactionFilters) => Promise<void>;
     fetchSummary: (period?: 'week' | 'month' | 'year') => Promise<void>;
     fetchWallets: () => Promise<void>;
+    deleteTransaction: (id: string) => Promise<void>;
+    updateTransaction: (id: string, data: Partial<Transaction>) => Promise<void>;
 }
 
 const initialPagination: PaginationState = {
@@ -111,6 +115,49 @@ export const useTransactionStore = create<TransactionStoreState>((set, get) => (
             set({ wallets: Array.isArray(data) ? data : [], walletsLoading: false });
         } catch (err) {
             set({ walletsLoading: false });
+        }
+    },
+
+    deleteTransaction: async (id) => {
+        //optimistic Remove: langsung hapus dari state, nanti kalau gagal baru rollback
+        const previousTransactions = get().transactions;
+        set({
+            transactions: previousTransactions.filter((tx) => tx.id !== id),
+        });
+
+        try {
+            await deleteTransactionAPI(id);
+            set((state) => ({
+                pagination: {
+                    ...state.pagination,
+                    totalItems: Math.max(0, state.pagination.totalItems - 1), // pastikan totalItems tidak negatif
+                }
+            }));
+        } catch (err) {
+            // Rollback: jika gagal menghapus dari API, kembalikan transaksi yang dihapus
+            set({ transactions: previousTransactions });
+            const message = err instanceof Error ? err.message : 'Gagal menghapus transaksi';
+            set({ error: message });
+            throw err;
+        }
+    },
+
+    updateTransaction: async (id, updates) => {
+        const previousTransactions = get().transactions;
+        set({
+            transactions: previousTransactions.map((tx) => tx.id === id ? { ...tx, ...updates } : tx),
+        });
+
+        try{
+            const updated = await updateTransactionAPI(id, updates);
+            set((state) => ({
+                transactions: state.transactions.map((tx) => tx.id === id ? updated : tx),
+            }));
+        } catch (err) {
+            set({transactions: previousTransactions});
+            const message = err instanceof Error ? err.message : 'Gagal memperbarui transaksi';
+            set({ error: message });
+            throw err;
         }
     },
 }));
