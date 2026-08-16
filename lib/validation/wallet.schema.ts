@@ -1,10 +1,10 @@
 // lib/validation/wallet.schema.ts
 import { z } from 'zod';
-import { WALLET_BANKS } from '@/types/wallet.types';
+import { WALLET_BANKS, type WalletBank } from '@/types/wallet.types';
 
 // Mirrors src/validations/wallet.validations.js (Joi) di BE — jaga selaras kalau BE berubah.
 
-const bankSchema = z.enum(WALLET_BANKS as [string, ...string[]], {
+const bankSchema = z.enum(WALLET_BANKS as [WalletBank, ...WalletBank[]], {
   errorMap: () => ({ message: 'Pilih jenis bank/dompet yang valid' }),
 });
 
