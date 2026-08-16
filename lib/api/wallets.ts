@@ -1,19 +1,18 @@
 // lib/api/wallets.ts
 import { api } from './client';
+import type {
+  Wallet,
+  WalletDetail,
+  WalletStatsResponse,
+  WalletTransactionsResponse,
+  WalletFormPayload,
+  WalletUpdatePayload,
+  WalletBalancePayload,
+} from '@/types/wallet.types';
 
-export interface Wallet {
-  id: string;
-  name: string;
-  bank: string;
-  balance: number;
-  current_balance: number;
-  initial_balance: number;
-  currency: string;
-  last_synced?: string;
-  is_active: boolean;
-  created_at: string;
-  updated_at: string;
-}
+// Re-export biar file lama yang masih import Wallet dari sini (bukan dari
+// types/wallet.types.ts) tetap jalan tanpa breaking — mis. ImportPDFModal.tsx.
+export type { Wallet } from '@/types/wallet.types';
 
 export interface WalletSummary {
   totalBalance: number;
@@ -21,16 +20,22 @@ export interface WalletSummary {
   wallets: Wallet[];
 }
 
-export async function fetchWallets(): Promise<Wallet[]> {
-  const raw = await api.get<any>('/wallets');
-  return Array.isArray(raw) ? raw : (raw?.data ?? []);
+export interface FetchWalletsOptions {
+  includeInactive?: boolean;
+}
+
+export async function fetchWallets(options?: FetchWalletsOptions): Promise<Wallet[]> {
+  const { data } = await api.get<Wallet[]>('/wallets', {
+    include_inactive: options?.includeInactive ?? undefined,
+  });
+  return data ?? [];
 }
 
 export async function fetchWalletSummary(): Promise<WalletSummary> {
   const wallets = await fetchWallets();
   const activeWallets = wallets.filter((w) => w.is_active !== false);
   const totalBalance = activeWallets.reduce(
-    (sum, w) => sum + (w.current_balance ?? w.balance ?? w.initial_balance ?? 0),
+    (sum, w) => sum + (w.current_balance ?? w.initial_balance ?? 0),
     0
   );
   return {
@@ -40,21 +45,78 @@ export async function fetchWalletSummary(): Promise<WalletSummary> {
   };
 }
 
-export async function fetchWalletById(id: string): Promise<Wallet> {
-  const { data } = await api.get<Wallet>(`/wallets/${id}`);
+export async function fetchWalletById(id: string): Promise<WalletDetail> {
+  const { data } = await api.get<WalletDetail>(`/wallets/${id}`);
   return data;
 }
 
-export async function createWallet(payload: Partial<Wallet>): Promise<Wallet> {
+export async function fetchWalletStats(
+  period: 'week' | 'month' | 'year' = 'month'
+): Promise<WalletStatsResponse> {
+  const { data } = await api.get<WalletStatsResponse>('/wallets/stats', { period });
+  return data;
+}
+
+export async function fetchWalletTransactions(
+  id: string,
+  params?: { page?: number; limit?: number }
+): Promise<WalletTransactionsResponse> {
+  const { data, pagination } = await api.get<WalletTransactionsResponse['data']>(
+    `/wallets/${id}/transactions`,
+    { page: params?.page, limit: params?.limit }
+  );
+  return {
+    data: data ?? [],
+    pagination: pagination as unknown as WalletTransactionsResponse['pagination'],
+  };
+}
+
+export async function createWallet(payload: WalletFormPayload): Promise<Wallet> {
   const { data } = await api.post<Wallet>('/wallets', payload);
   return data;
 }
 
-export async function updateWallet(id: string, payload: Partial<Wallet>): Promise<Wallet> {
+export async function updateWallet(id: string, payload: WalletUpdatePayload): Promise<Wallet> {
   const { data } = await api.put<Wallet>(`/wallets/${id}`, payload);
   return data;
 }
 
 export async function deleteWallet(id: string): Promise<void> {
   await api.delete(`/wallets/${id}`);
+}
+
+export async function setDefaultWallet(id: string): Promise<Wallet> {
+  const { data } = await api.patch<Wallet>(`/wallets/${id}/set-default`);
+  return data;
+}
+
+export async function updateWalletBalance(
+  id: string,
+  payload: WalletBalancePayload
+): Promise<{ old_balance: number; new_balance: number; adjustment: number }> {
+  const { data } = await api.patch<{
+    old_balance: number;
+    new_balance: number;
+    adjustment: number;
+  }>(`/wallets/${id}/balance`, payload);
+  return data;
+}
+
+export async function syncWallet(id: string): Promise<{ wallet_id: string; last_synced: string }> {
+  const { data } = await api.post<{ wallet_id: string; last_synced: string }>(
+    `/wallets/${id}/sync`
+  );
+  return data;
+}
+
+export async function recalculateWalletBalance(
+  id: string
+): Promise<{ wallet_id: string; old_balance: number; new_balance: number; difference: number }> {
+  const { data } = await api.post<{
+    wallet_id: string;
+    old_balance: number;
+    new_balance: number;
+    difference: number;
+  }>(`/wallets/${id}/recalculate`);
+  return data;
 }
