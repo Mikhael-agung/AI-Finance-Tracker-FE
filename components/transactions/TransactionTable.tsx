@@ -1,8 +1,7 @@
 "use client";
 
-import type { ComponentType } from "react";
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, SearchX } from "lucide-react";
 import {
   Table,
   TableHeader,
@@ -24,6 +23,13 @@ export function TransactionTable({ onRowClick }: { onRowClick?: (tx: Transaction
   const transactions = useTransactionStore((s) => s.transactions);
   const loading = useTransactionStore((s) => s.loading);
   const pagination = useTransactionStore((s) => s.pagination);
+
+  const hasActiveFilters = Boolean(
+    searchParams.get('search') ||
+    searchParams.get('type') ||
+    searchParams.get('source') ||
+    searchParams.get('wallet_id')
+  );
 
   const goToPage = (page: number) => {
     const params = new URLSearchParams(searchParams.toString());
@@ -83,19 +89,18 @@ export function TransactionTable({ onRowClick }: { onRowClick?: (tx: Transaction
 
         {!loading && transactions.length === 0 && (
           <div className="py-12">
-            {(() => {
-              const EmptyStateWithProps = EmptyState as ComponentType<{
-                title: string;
-                description: string;
-              }>;
-
-              return (
-                <EmptyStateWithProps
-                  title="Belum ada transaksi"
-                  description="Transaksi yang cocok dengan filter kamu belum ditemukan."
-                />
-              );
-            })()}
+            {hasActiveFilters ? (
+              <EmptyState
+                icon={SearchX}
+                title="Transaksi tidak ditemukan"
+                description="Coba ubah kata kunci pencarian atau filter yang kamu gunakan."
+              />
+            ) : (
+              <EmptyState
+                title="Belum ada transaksi"
+                description="Transaksi dari sinkronisasi Gmail atau input manual akan muncul di sini."
+              />
+            )}
           </div>
         )}
       </div>
