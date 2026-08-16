@@ -10,6 +10,7 @@ interface WalletListProps {
     loading?: boolean;
     onCardClick?: (wallet: Wallet) => void;
     onCardMenuClick?: (wallet: Wallet) => void;
+    balanceVisible?: boolean;
 }
 
 function WalletCardSkeleton() {
@@ -27,7 +28,7 @@ function WalletCardSkeleton() {
     );
 }
 
-export default function WalletList({ wallets, loading, onCardClick, onCardMenuClick }: WalletListProps) {
+export default function WalletList({ wallets, loading, onCardClick, onCardMenuClick, balanceVisible = true }: WalletListProps) {
     if (loading) {
         return (
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -58,6 +59,7 @@ export default function WalletList({ wallets, loading, onCardClick, onCardMenuCl
                     wallet={wallet}
                     onClick={onCardClick}
                     onMenuClick={onCardMenuClick}
+                    balanceVisible={balanceVisible}
                 />
             ))}
         </div>

@@ -8,6 +8,7 @@ interface WalletCardProps {
     wallet: Wallet;
     onClick?: (wallet: Wallet) => void;
     onMenuClick?: (wallet: Wallet) => void;
+    balanceVisible?: boolean;
 }
 
 const BANK_STYLE: Record<string, { icon: React.ElementType; className: string }> = {
@@ -29,7 +30,7 @@ function maskAccountNumber(accountNumber?: string): string | null {
     return `•••• ${accountNumber.slice(-4)}`;
 }
 
-export default function WalletCard({ wallet, onClick, onMenuClick }: WalletCardProps) {
+export default function WalletCard({ wallet, onClick, onMenuClick, balanceVisible = true }: WalletCardProps) {
     const style = BANK_STYLE[wallet.bank] ?? BANK_STYLE.Other;
     const Icon = style.icon;
     const maskedAccount = maskAccountNumber(wallet.account_number);
@@ -67,7 +68,7 @@ export default function WalletCard({ wallet, onClick, onMenuClick }: WalletCardP
                     {maskedAccount ? ` • ${maskedAccount}` : ''}
                 </p>
                 <p className="font-mono text-xl font-bold text-foreground">
-                    {formatCurrency(wallet.current_balance, wallet.currency)}
+                    {balanceVisible ? formatCurrency(wallet.current_balance, wallet.currency) : '••••••••'}
                 </p>
             </div>
         </div>

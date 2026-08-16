@@ -1,12 +1,13 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Plus, X } from 'lucide-react';
+import { Plus, X, Eye, EyeOff } from 'lucide-react';
 import { toast } from 'sonner';
 import { useWalletStore } from '@/lib/store/wallet.store';
 import { createWalletSchema, type CreateWalletFormValues } from '@/lib/validation/wallet.schema';
 import { WALLET_BANKS, type Wallet } from '@/types/wallet.types';
 import { formatCurrency } from '@/lib/utils/formatters';
+import { useBalanceVisibility } from '@/lib/hooks/useBalanceVisibility';
 import WalletList from '@/components/wallets/WalletList';
 
 const DEFAULT_FORM: CreateWalletFormValues = {
@@ -171,6 +172,7 @@ function AddWalletModal({ onClose }: { onClose: () => void }) {
 export default function WalletsPage() {
     const { wallets, loading, fetchWallets } = useWalletStore();
     const [showAddModal, setShowAddModal] = useState(false);
+    const { visible: balanceVisible, toggle: toggleBalanceVisible } = useBalanceVisibility();
 
     useEffect(() => {
         fetchWallets();
@@ -202,16 +204,30 @@ export default function WalletsPage() {
             <div className="relative mb-8 overflow-hidden rounded-xl border border-border bg-card p-6 lg:p-8">
                 <div className="pointer-events-none absolute right-0 top-0 h-64 w-64 translate-x-1/2 -translate-y-1/2 rounded-full bg-primary/10 blur-[80px]" />
                 <div className="relative z-10">
-                    <p className="mb-2 text-sm font-medium text-muted-foreground">Total Saldo</p>
+                    <div className="mb-2 flex items-center gap-2">
+                        <p className="text-sm font-medium text-muted-foreground">Total Saldo</p>
+                        <button
+                            onClick={toggleBalanceVisible}
+                            className="rounded-md p-1 text-muted-foreground transition-colors hover:text-foreground"
+                            aria-label={balanceVisible ? 'Sembunyikan saldo' : 'Tampilkan saldo'}
+                        >
+                            {balanceVisible ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
+                        </button>
+                    </div>
                     <h3 className="font-mono text-4xl font-bold tracking-tight text-foreground lg:text-5xl">
-                        {loading ? '···' : formatCurrency(totalBalance)}
+                        {loading ? '···' : balanceVisible ? formatCurrency(totalBalance) : '••••••••••••'}
                     </h3>
                 </div>
             </div>
 
             <div className="mb-8">
                 <h2 className="mb-4 font-medium text-foreground">Wallet Kamu</h2>
-                <WalletList wallets={wallets} loading={loading} onCardClick={handleCardClick} />
+                <WalletList
+                    wallets={wallets}
+                    loading={loading}
+                    onCardClick={handleCardClick}
+                    balanceVisible={balanceVisible}
+                />
             </div>
 
             {showAddModal && <AddWalletModal onClose={() => setShowAddModal(false)} />}
